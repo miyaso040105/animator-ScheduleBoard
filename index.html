@@ -1,0 +1,3298 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+<title>Animator Schedule Board MVP</title>
+
+<style>
+  :root{
+    --bg:#eef2f6;
+    --bg2:#e4e9ef;
+    --panel:#ffffff;
+    --panel-soft:#f8fafc;
+    --grid:#d7dde5;
+    --grid-strong:#8c95a2;
+    --grid-dark:#202020;
+    --head:#565d68;
+    --head2:#464d57;
+    --head-text:#f8fafc;
+    --green:#cfeecf;
+    --green-deep:#1d7a41;
+    --pink:#ffd0d8;
+    --pink-deep:#b32543;
+    --yellow:#fff2b8;
+    --yellow-deep:#8a6a00;
+    --orange:#ffe3bd;
+    --orange-deep:#d96a0c;
+    --text:#111827;
+    --muted:#667085;
+    --accent:#14833b;
+    --danger:#b42318;
+    --shadow:0 10px 28px rgba(15, 23, 42, .08);
+    --radius:16px;
+    --header1:22px;
+    --header2:22px;
+    --progressTop:56px;
+    --sheetMin:720px;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans KR", "Noto Sans JP", sans-serif;
+    background:
+      radial-gradient(circle at top left, rgba(255,255,255,.85), rgba(255,255,255,0) 28%),
+      linear-gradient(180deg, var(--bg), var(--bg2));
+    color:var(--text);
+    overflow:hidden;
+  }
+  .app{
+    height:100vh;
+    display:grid;
+    grid-template-rows:auto auto auto auto minmax(0,1fr);
+    gap:8px;
+    padding:10px;
+    overflow:hidden;
+  }
+  .topbar{
+    display:flex;
+    gap:16px;
+    align-items:flex-start;
+    justify-content:space-between;
+    padding:12px 16px;
+    background:linear-gradient(180deg, #313740 0%, #232931 100%);
+    color:#fff;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:16px;
+    box-shadow:var(--shadow);
+  }
+  .brand{
+    display:grid;
+    gap:4px;
+  }
+  .brand h1{
+    font-size:22px;
+    line-height:1.15;
+    margin:0;
+    font-weight:900;
+    letter-spacing:.02em;
+  }
+  .brand .subtitle{
+    font-size:14px;
+    color:rgba(255,255,255,.72);
+    letter-spacing:.04em;
+  }
+  .topbar .right{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    justify-content:flex-end;
+  }
+  button, input, select{
+    font:inherit;
+  }
+  button{
+    border:1px solid #cad3df;
+    background:linear-gradient(180deg, #ffffff 0%, #f5f7fa 100%);
+    color:#182230;
+    border-radius:10px;
+    padding:8px 12px;
+    cursor:pointer;
+    font-weight:800;
+    box-shadow:0 1px 0 rgba(255,255,255,.9) inset;
+    transition:.15s ease;
+  }
+  button:hover{
+    transform:translateY(-1px);
+    box-shadow:0 6px 16px rgba(15,23,42,.08);
+  }
+  button.primary{
+    background:linear-gradient(180deg, #1fa55d 0%, #16864a 100%);
+    color:#fff;
+    border-color:#0e6d3a;
+  }
+  button.danger{
+    background:linear-gradient(180deg, #fff7f8 0%, #ffeef1 100%);
+    color:#9f1239;
+    border-color:#e2a6b5;
+  }
+  button:active{transform:translateY(1px)}
+
+  .language-picker{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    padding:4px 8px;
+    border:1px solid #d9e1ea;
+    border-radius:999px;
+    background:#fff;
+    font-size:12px;
+    font-weight:900;
+    color:#475467;
+  }
+  .language-picker select{
+    min-width:96px;
+    padding:6px 8px;
+    border:1px solid #c6d0db;
+    border-radius:999px;
+    background:#fff;
+    font-weight:900;
+  }
+  .summary{
+    display:none;
+  }
+  .card{
+    background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border:1px solid #d9e1ea;
+    border-radius:10px;
+    padding:7px 10px;
+    min-height:48px;
+    box-shadow:var(--shadow);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";
+    position:absolute;
+    left:0; top:0;
+    width:100%;
+    height:4px;
+    background:linear-gradient(90deg, #6b7280, #cbd5e1);
+  }
+  .card:nth-child(3)::before,
+  .card:nth-child(4)::before,
+  .card:nth-child(5)::before,
+  .card:nth-child(6)::before{
+    background:linear-gradient(90deg, #1e9d55, #8ce6ae);
+  }
+  .card .label{
+    font-size:12px;
+    color:#667085;
+    font-weight:800;
+  }
+  .card .value{
+    font-size:24px;
+    font-weight:900;
+    margin-top:4px;
+    letter-spacing:.01em;
+  }
+  .toolbar{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    align-items:center;
+    padding:8px 10px;
+    background:rgba(255,255,255,.88);
+    backdrop-filter:blur(8px);
+    border:1px solid #d9e1ea;
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    min-width:0;
+  }
+  .toolbar label{
+    font-size:14px;
+    font-weight:900;
+    color:#475467;
+    display:flex;
+    gap:6px;
+    align-items:center;
+  }
+  .toolbar input,
+  .toolbar select{
+    width:118px;
+    border:1px solid #c6d0db;
+    border-radius:8px;
+    padding:6px 8px;
+    background:#fff;
+    color:#111827;
+  }
+  .toolbar select{
+    width:150px;
+    font-weight:800;
+  }
+  .toolbar input.small{width:84px}
+  .toolbar input.tiny{width:64px}
+  #deadlineDate{width:138px}
+  .toolbar .spacer{flex:1}
+  .hint{
+    font-size:13px;
+    color:#667085;
+    background:#f5f8fb;
+    border:1px dashed #d0d8e4;
+    padding:5px 8px;
+    border-radius:999px;
+    white-space:nowrap;
+  }
+
+  .control-panel{
+    display:grid;
+    grid-template-columns:1.15fr 1.35fr .7fr;
+    gap:8px;
+    min-width:0;
+  }
+  .control-group{
+    display:flex;
+    align-items:center;
+    gap:7px;
+    flex-wrap:wrap;
+    padding:8px 10px;
+    background:linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    border:1px solid #d9e1ea;
+    border-radius:14px;
+    box-shadow:var(--shadow);
+    min-width:0;
+  }
+  .control-title{
+    font-size:13px;
+    font-weight:950;
+    color:#475467;
+    letter-spacing:.08em;
+    padding:4px 8px;
+    border-radius:999px;
+    background:#eef2f7;
+    white-space:nowrap;
+  }
+  .control-group label{
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:14px;
+    font-weight:900;
+    color:#475467;
+    white-space:nowrap;
+  }
+  .control-group input{
+    border:1px solid #c6d0db;
+    border-radius:8px;
+    padding:6px 8px;
+    background:#fff;
+    color:#111827;
+  }
+  .control-group input.tiny{width:64px}
+  .danger-zone{
+    justify-content:flex-end;
+  }
+  .wrap{
+    padding:0;
+    overflow:auto;
+    min-height:0;
+    background:#fff;
+    border:1px solid #d9e1ea;
+    border-radius:16px;
+    box-shadow:var(--shadow);
+    overscroll-behavior:contain;
+  }
+  table{
+    border-collapse:separate;
+    border-spacing:0;
+    min-width:var(--sheetMin);
+    width:100%;
+    table-layout:fixed;
+    background:white;
+    margin-top:0;
+  }
+  th, td{
+    border-right:1px solid var(--grid);
+    border-bottom:1px solid var(--grid);
+    height:30px;
+    padding:3px 6px;
+    text-align:center;
+    vertical-align:middle;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    font-size:14px;
+  }
+  thead th{
+    background:var(--head);
+    color:var(--head-text);
+    font-weight:900;
+    position:sticky;
+    top:0;
+    z-index:20;
+    border-right:1px solid #757e89;
+    border-bottom:1px solid #31363e;
+    box-shadow:0 1px 0 rgba(255,255,255,.08) inset;
+  }
+  thead tr:first-child th{
+    top:0;
+    height:28px;
+    font-size:14px;
+    letter-spacing:.02em;
+  }
+  thead tr:nth-child(2) th{
+    background:var(--head2);
+    top:28px;
+    z-index:21;
+    height:28px;
+  }
+  tbody tr:nth-child(even){background:#fbfcfe}
+  tbody tr:hover td{background:#f4f9f5}
+  .group{
+    border-left:2px solid #1f2937!important;
+    border-right:2px solid #1f2937!important;
+  }
+  .thick-left{
+    border-left:2px solid #1f2937!important;
+  }
+  .thick-right{
+    border-right:2px solid #1f2937!important;
+  }
+  .project-cell, .episode-cell{
+    font-weight:900;
+    background:linear-gradient(180deg, #ffffff 0%, #f6f7f9 100%)!important;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.9);
+  }
+  .project-cell{
+    font-size:22px;
+    letter-spacing:.02em;
+  }
+  .episode-cell{
+    font-size:22px;
+  }
+  .cut-cell, .time-cell{
+    text-align:left;
+    padding-left:6px;
+    font-weight:700;
+    cursor:text;
+  }
+  [contenteditable="true"]:focus{
+    outline:2px solid rgba(34,197,94,.55);
+    outline-offset:-2px;
+    background:#fffef4;
+  }
+  .time-cell{font-variant-numeric:tabular-nums}
+  .work-cell{
+    cursor:pointer;
+    position:relative;
+    background:#fff;
+    text-align:center;
+    font-weight:950;
+    vertical-align:middle;
+  }
+  .work-cell::before{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    line-height:1;
+  }
+  .work-cell.state-done::before{
+    content:"○";
+    color:#2563eb;
+    font-size:20px;
+    font-weight:950;
+  }
+  .work-cell.state-progress::before{
+    content:"▲";
+    color:#d97706;
+    font-size:17px;
+    font-weight:950;
+  }
+  .work-cell.state-nigen::before{
+    content:"二原";
+    color:#fff;
+    background:#111827;
+    border-radius:5px;
+    padding:3px 4px;
+    font-size:11px;
+    font-weight:950;
+    letter-spacing:-.08em;
+  }
+  .work-cell.check-done::before{
+    content:"○";
+    color:#d97706;
+    font-size:18px;
+    font-weight:950;
+  }
+
+  tr.row-stage-lo td:not(.project-cell):not(.episode-cell){
+    background:#e9f8ee!important;
+  }
+  tr.row-stage-check td:not(.project-cell):not(.episode-cell),
+  tr.row-stage-progress td:not(.project-cell):not(.episode-cell){
+    background:#fff7cc!important;
+  }
+  tr.row-stage-genga td:not(.project-cell):not(.episode-cell){
+    background:#eceff3!important;
+    color:#6b7280;
+  }
+  tr.row-stage-genga td.cut-cell,
+  tr.row-stage-genga td.time-cell,
+  tr.row-stage-genga td.work-cell,
+  tr.row-stage-nigen td.cut-cell,
+  tr.row-stage-nigen td.time-cell,
+  tr.row-stage-nigen td.work-cell{
+    opacity:.62;
+  }
+  tr.row-stage-genga td.selected-cell,
+  tr.row-stage-nigen td.selected-cell{
+    opacity:1;
+  }
+  tr.row-stage-nigen td:not(.project-cell):not(.episode-cell){
+    background:#eceff3!important;
+    color:#6b7280;
+  }
+  .project-cell, .episode-cell{
+    cursor:pointer;
+    user-select:none;
+  }
+  .project-cell::after,
+  .episode-cell::after{
+    content:"";
+  }
+  .progress-cell{
+    font-weight:900;
+    font-variant-numeric:tabular-nums;
+  }
+  .progress-cell.ok{
+    background:var(--green)!important;
+    color:var(--green-deep);
+  }
+  .progress-cell.warn{
+    background:var(--pink)!important;
+    color:var(--pink-deep);
+  }
+  .progress-cell.mid{
+    background:var(--yellow)!important;
+    color:var(--yellow-deep);
+  }
+  .progress-summary-row td{
+    position:sticky;
+    top:var(--progressTop);
+    z-index:15;
+    background:#fff;
+    font-weight:900;
+    box-shadow:0 6px 14px rgba(15,23,42,.06);
+  }
+  .alert-cell{
+    background:var(--orange);
+    color:var(--orange-deep);
+    font-weight:900;
+  }
+  .row-selected td{
+    background:inherit;
+  }
+  td.selected-cell{
+    background:#ecfdf3!important;
+    outline:2px solid #16a34a;
+    outline-offset:-2px;
+    position:relative;
+    z-index:18;
+  }
+  td.selected-range{
+    background:#e7f7ee!important;
+    box-shadow:inset 0 0 0 1px rgba(22,163,74,.42);
+  }
+  td.selected-range.range-edge-top{border-top:2px solid #16a34a!important}
+  td.selected-range.range-edge-bottom{border-bottom:2px solid #16a34a!important}
+  td.selected-range.range-edge-left{border-left:2px solid #16a34a!important}
+  td.selected-range.range-edge-right{border-right:2px solid #16a34a!important}
+  .freeze-project.selected-cell,
+  .freeze-episode.selected-cell,
+  .freeze-cut.selected-cell,
+  .freeze-time.selected-cell{
+    background:#ecfdf3!important;
+  }
+  td[contenteditable="true"]{
+    background:transparent;
+    cursor:text;
+  }
+  td[contenteditable="true"]:focus{
+    outline:2px solid #16a34a;
+    outline-offset:-2px;
+    background:#fffef0!important;
+  }
+
+
+  .project-stack{
+    display:grid;
+    gap:10px;
+    min-height:0;
+  }
+
+  .left-table-zone{
+    position:relative;
+    overflow:auto;
+    background:#f8fafc;
+  }
+  .fixed-sheet-head{
+    position:sticky;
+    top:0;
+    z-index:80;
+    background:#fff;
+    box-shadow:0 2px 8px rgba(15,23,42,.12);
+  }
+  .fixed-sheet-head table{
+    margin:0;
+    min-width:var(--sheetMin);
+    width:100%;
+    table-layout:fixed;
+  }
+  .sheet-body{
+    padding:0;
+    min-width:var(--sheetMin);
+  }
+
+  .work-group{
+    border-top:1px solid #cfd8e3;
+    border-bottom:1px solid #cfd8e3;
+    border-left:0;
+    border-right:0;
+    border-radius:12px;
+    overflow:hidden;
+    background:#f8fafc;
+    box-shadow:0 6px 16px rgba(15,23,42,.05);
+  }
+  .work-group-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:8px 12px;
+    background:linear-gradient(180deg,#3f4650 0%,#2f3640 100%);
+    color:#fff;
+    font-weight:950;
+    cursor:grab;
+  }
+  .work-group-head:active{
+    cursor:grabbing;
+  }
+  .work-group-head strong{
+    font-size:16px;
+    letter-spacing:.03em;
+  }
+  .work-group-head span{
+    font-size:13px;
+    opacity:.82;
+    font-weight:850;
+  }
+
+  .work-group-head-main{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    min-width:0;
+  }
+  .collapse-toggle,
+  .episode-collapse-toggle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:26px;
+    height:26px;
+    border-radius:8px;
+    border:1px solid rgba(255,255,255,.28);
+    background:rgba(255,255,255,.12);
+    color:inherit;
+    box-shadow:none;
+    padding:0;
+    font-size:15px;
+    line-height:1;
+    font-weight:950;
+    cursor:pointer;
+    flex:0 0 auto;
+  }
+  .collapse-toggle:hover{
+    background:rgba(255,255,255,.22);
+  }
+  .episode-cell-content{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-width:0;
+  }
+
+  .episode-info{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:3px;
+    min-width:0;
+  }
+  .episode-total-time{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    max-width:100%;
+    padding:3px 6px;
+    border-radius:999px;
+    background:#eef2f7;
+    color:#334155;
+    border:1px solid #cbd5e1;
+    font-size:11px;
+    font-weight:950;
+    line-height:1.15;
+    white-space:nowrap;
+  }
+  .collapsed-episode-row .episode-total-time{
+    background:#fff;
+  }
+  .episode-collapse-toggle{
+    width:24px;
+    height:24px;
+    border-color:#cbd5e1;
+    background:#f8fafc;
+    color:#334155;
+    font-size:13px;
+  }
+  .episode-collapse-toggle:hover{
+    background:#eaf0f7;
+  }
+  .work-group.collapsed{
+    background:#edf2f7;
+  }
+
+  .drag-handle{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    width:24px;
+    height:26px;
+    border-radius:8px;
+    background:rgba(255,255,255,.10);
+    color:rgba(255,255,255,.86);
+    font-size:16px;
+    font-weight:950;
+    cursor:grab;
+    flex:0 0 auto;
+  }
+  .work-group.dragging{
+    opacity:.45;
+    transform:scale(.998);
+  }
+  .work-group.drop-before{
+    box-shadow:0 -5px 0 #2563eb, 0 10px 22px rgba(37,99,235,.18);
+  }
+  .work-group.drop-after{
+    box-shadow:0 5px 0 #2563eb, 0 10px 22px rgba(37,99,235,.18);
+  }
+  .collapsed-episode-row .empty-row{
+    padding:18px!important;
+    background:#f8fafc!important;
+    color:#667085;
+    font-size:14px;
+    letter-spacing:.02em;
+  }
+  .work-group-body{
+    display:grid;
+    gap:8px;
+    padding:8px;
+  }
+
+  .work-table-wrap{
+    padding:0;
+    background:#f8fafc;
+  }
+  .work-table-wrap table{
+    min-width:var(--sheetMin);
+    width:100%;
+    table-layout:fixed;
+    margin:0;
+    background:#fff;
+    border-left:0;
+    border-right:0;
+    border-top:0;
+    border-bottom:0;
+  }
+
+  .work-table-wrap td,
+  .work-table-wrap th{
+    box-sizing:border-box;
+  }
+  .work-table-wrap .freeze-project,
+  .work-table-wrap .freeze-episode,
+  .work-table-wrap .freeze-cut,
+  .work-table-wrap .freeze-time{
+    position:static!important;
+    left:auto!important;
+    z-index:auto!important;
+  }
+  .work-table-wrap td.selected-cell{
+    position:relative;
+    z-index:2;
+  }
+  .work-table-wrap td[contenteditable="true"]{
+    caret-color:#111827;
+    min-width:0;
+  }
+  .work-row-active td{
+    box-shadow:inset 0 0 0 999px rgba(22,163,74,.05);
+  }
+  tr.episode-start td{
+    border-top:2px solid #aeb8c5;
+  }
+  tr.episode-start:first-child td{
+    border-top:0;
+  }
+  .episode-cell{
+    cursor:pointer;
+  }
+  .episode-cell::after{
+    content:"";
+  }
+
+
+  .project-block{
+    border:1px solid #d9e1ea;
+    border-radius:12px;
+    overflow:hidden;
+    background:#fff;
+    box-shadow:0 4px 12px rgba(15,23,42,.04);
+    min-height:190px;
+    display:grid;
+    grid-template-rows:auto minmax(0,1fr);
+  }
+  .project-block.active{
+    box-shadow:0 0 0 3px rgba(22,163,74,.14), 0 8px 18px rgba(15,23,42,.06);
+    border-color:#98d7af;
+  }
+  .project-block-title{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    padding:7px 10px;
+    background:linear-gradient(180deg,#f8fafc 0%,#eef3f8 100%);
+    border-bottom:1px solid #d9e1ea;
+    cursor:pointer;
+  }
+  .project-block-title strong{
+    font-size:12px;
+    color:#111827;
+  }
+  .project-block-title span{
+    color:#667085;
+    font-size:11px;
+    font-weight:800;
+  }
+  .project-block-title .badge{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    min-width:48px;
+    border-radius:999px;
+    padding:4px 8px;
+    background:#ecfdf3;
+    color:#14833b;
+    font-size:10px;
+    font-weight:950;
+  }
+  .project-block:not(.active) .project-block-title .badge{
+    background:#eef2f7;
+    color:#667085;
+  }
+  .project-block .table-zone{
+    border-right:0;
+    overflow:visible;
+  }
+  .project-block table{
+    min-width:var(--sheetMin);
+    margin:0;
+  }
+
+  .sheet-layout{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);
+    gap:8px;
+    min-height:0;
+    height:100%;
+  }
+  .table-zone{
+    overflow:auto;
+    min-width:0;
+    min-height:0;
+    border-right:1px solid #d9e1ea;
+  }
+  .side-progress{
+    display:grid;
+    grid-template-rows:auto repeat(3, minmax(58px, auto)) auto;
+    gap:8px;
+    align-content:start;
+    padding:8px;
+    background:linear-gradient(180deg, #f8fafc 0%, #eef3f8 100%);
+    border-left:1px solid #d9e1ea;
+    min-width:0;
+  }
+  .side-progress::before{
+    content:attr(data-title);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    height:40px;
+    border-radius:10px;
+    background:linear-gradient(180deg, #565d68 0%, #343b45 100%);
+    color:#fff;
+    font-size:16px;
+    font-weight:950;
+    letter-spacing:.12em;
+  }
+  .progress-title{
+    display:none;
+  }
+  .progress-tile{
+    --hue:0;
+    background:hsl(var(--hue) 78% 93%);
+    color:hsl(var(--hue) 70% 25%);
+    border:1px solid hsl(var(--hue) 52% 76%);
+    border-radius:12px;
+    padding:12px 14px;
+    box-shadow:0 4px 12px rgba(15,23,42,.06);
+    transition:background-color .45s ease, border-color .45s ease, color .45s ease;
+    overflow:hidden;
+    min-height:78px;
+  }
+  .progress-tile-head{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:6px;
+    font-size:14px;
+    font-weight:950;
+    letter-spacing:.05em;
+  }
+  .progress-count{
+    margin-top:5px;
+    font-size:30px;
+    line-height:1;
+    font-weight:950;
+    font-variant-numeric:tabular-nums;
+    animation:progressPop .32s ease;
+  }
+  .progress-count small{
+    font-size:14px;
+    color:rgba(0,0,0,.46);
+    font-weight:900;
+  }
+  .progress-bar{
+    margin-top:8px;
+    height:7px;
+    border-radius:999px;
+    background:rgba(255,255,255,.72);
+    overflow:hidden;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.04);
+  }
+  .progress-bar i{
+    display:block;
+    width:calc(var(--p) * 1%);
+    height:100%;
+    border-radius:inherit;
+    background:linear-gradient(90deg, hsl(var(--hue) 68% 46%), hsl(var(--hue) 76% 56%));
+    transition:width .55s ease, background-color .45s ease;
+  }
+  .progress-percent{
+    margin-top:5px;
+    font-size:13px;
+    font-weight:900;
+    color:rgba(0,0,0,.48);
+  }
+  .deadline-panel{
+    background:#fff;
+    border:1px solid #d9e1ea;
+    border-radius:12px;
+    padding:8px;
+    box-shadow:0 4px 12px rgba(15,23,42,.06);
+  }
+  .deadline-title{
+    font-size:14px;
+    font-weight:950;
+    color:#475467;
+    letter-spacing:.08em;
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+  }
+  .deadline-title span:last-child{
+    color:#111827;
+    letter-spacing:0;
+  }
+  .deadline-grid{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    margin-top:8px;
+  }
+  .deadline-metric{
+    background:#f8fafc;
+    border:1px solid #e5ebf2;
+    border-radius:9px;
+    padding:7px 8px;
+  }
+  .deadline-metric .k{
+    color:#667085;
+    font-size:13px;
+    font-weight:900;
+  }
+  .deadline-metric .v{
+    margin-top:2px;
+    color:#111827;
+    font-size:28px;
+    line-height:1;
+    font-weight:950;
+    font-variant-numeric:tabular-nums;
+  }
+  .deadline-note{
+    margin-top:7px;
+    color:#667085;
+    font-size:14px;
+    line-height:1.45;
+    font-weight:750;
+  }
+
+  .deadline-stage-list{
+    display:grid;
+    gap:6px;
+    margin-top:8px;
+  }
+  .deadline-stage{
+    display:grid;
+    grid-template-columns:58px 1fr auto;
+    align-items:center;
+    gap:7px;
+    background:#f8fafc;
+    border:1px solid #e5ebf2;
+    border-radius:9px;
+    padding:7px 8px;
+  }
+  .deadline-stage-name{
+    font-size:14px;
+    font-weight:950;
+    color:#111827;
+  }
+  .deadline-stage-bar{
+    height:6px;
+    border-radius:999px;
+    background:#e5ebf2;
+    overflow:hidden;
+  }
+  .deadline-stage-bar i{
+    display:block;
+    height:100%;
+    width:calc(var(--stage-p) * 1%);
+    border-radius:inherit;
+    background:linear-gradient(90deg, #d92d20, #f3b233, #18a05e);
+    transition:width .45s ease;
+  }
+  .deadline-stage-meta{
+    min-width:74px;
+    text-align:right;
+    font-size:10px;
+    font-weight:900;
+    color:#667085;
+  }
+  .deadline-stage-daily{
+    color:#111827;
+    font-weight:950;
+  }
+  .deadline-warn{
+    color:#b42318;
+    font-weight:900;
+  }
+  .deadline-ok{
+    color:#14833b;
+    font-weight:900;
+  }
+  @keyframes progressPop{
+    from{transform:scale(.96); opacity:.62}
+    to{transform:scale(1); opacity:1}
+  }
+
+  /* Excel처럼 좌측 컷 정보 칼럼 고정 */
+  .freeze-project{
+    position:sticky;
+    left:0;
+    z-index:12;
+  }
+  .freeze-episode{
+    position:sticky;
+    left:120px;
+    z-index:12;
+  }
+  .freeze-cut{
+    position:sticky;
+    left:172px;
+    z-index:11;
+  }
+  .freeze-time{
+    position:sticky;
+    left:236px;
+    z-index:11;
+  }
+  thead .sticky-project-head{
+    position:sticky;
+    left:0;
+    z-index:31;
+  }
+  thead .sticky-episode-head{
+    position:sticky;
+    left:120px;
+    z-index:31;
+  }
+  thead .sticky-cut-head{
+    position:sticky;
+    left:172px;
+    z-index:31;
+  }
+  thead .sticky-time-head{
+    position:sticky;
+    left:236px;
+    z-index:31;
+  }
+  tbody td.freeze-cut,
+  tbody td.freeze-time{
+    background:#fff!important;
+  }
+  tbody tr:nth-child(even) td.freeze-cut,
+  tbody tr:nth-child(even) td.freeze-time{
+    background:#fbfcfe!important;
+  }
+  tbody tr:hover td.freeze-cut,
+  tbody tr:hover td.freeze-time{
+    background:#f4f9f5!important;
+  }
+  .row-selected td.freeze-cut,
+  .row-selected td.freeze-time{
+    background:#ecfdf3!important;
+  }
+
+  .modal-bg{
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.42);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    backdrop-filter:blur(4px);
+  }
+  .modal{
+    width:min(760px, 100%);
+    background:#fff;
+    border-radius:18px;
+    border:1px solid #d8e0ea;
+    padding:18px;
+    box-shadow:0 24px 60px rgba(15,23,42,.22);
+  }
+  .modal h2{
+    margin:0 0 12px;
+    font-size:20px;
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:12px;
+  }
+  .form-grid label{
+    display:grid;
+    gap:6px;
+    font-size:12px;
+    font-weight:900;
+    color:#475467;
+  }
+  .form-grid input{
+    border:1px solid #c6d0db;
+    border-radius:10px;
+    padding:10px 12px;
+    background:#fff;
+  }
+  .modal-actions{
+    display:flex;
+    gap:8px;
+    justify-content:flex-end;
+    margin-top:16px;
+  }
+
+  .stage-menu{
+    position:fixed;
+    z-index:9999;
+    min-width:160px;
+    background:#ffffff;
+    border:1px solid #cfd8e3;
+    border-radius:14px;
+    box-shadow:0 18px 45px rgba(16,24,40,.22);
+    padding:6px;
+  }
+  .stage-menu[hidden]{
+    display:none!important;
+  }
+  .stage-menu button{
+    width:100%;
+    display:flex;
+    align-items:center;
+    gap:8px;
+    border:0;
+    background:transparent;
+    color:#111827;
+    box-shadow:none;
+    border-radius:10px;
+    padding:8px 10px;
+    justify-content:flex-start;
+    font-weight:900;
+  }
+  .stage-menu button:hover{
+    background:#f2f5f9;
+  }
+  .stage-menu:not(.allow-nigen) .nigen-option{
+    display:none;
+  }
+  .menu-symbol{
+    width:32px;
+    height:24px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    border-radius:8px;
+    font-weight:950;
+  }
+  .menu-symbol.progress{
+    color:#d97706;
+  }
+  .menu-symbol.done{
+    color:#2563eb;
+    font-size:18px;
+  }
+  .menu-symbol.nigen{
+    color:#fff;
+    background:#111827;
+    font-size:11px;
+    letter-spacing:-.08em;
+  }
+  .menu-symbol.clear{
+    color:#667085;
+  }
+  .footnote{
+    margin:0;
+    padding:10px 16px 14px;
+    font-size:12px;
+    color:#667085;
+    background:#fbfcfe;
+    border-top:1px solid #e5ebf2;
+  }
+  .empty-row{
+    padding:28px!important;
+    color:#667085;
+    font-weight:900;
+    background:#fff;
+  }
+  @media (max-width:1100px){
+    .summary{grid-template-columns:repeat(3,1fr)}
+    .toolbar{flex-wrap:wrap}
+    .control-panel{grid-template-columns:1fr}
+    .danger-zone{justify-content:flex-start}
+    .sheet-layout{grid-template-columns:1fr}
+    .side-progress{
+      grid-template-columns:repeat(3,1fr);
+      grid-template-rows:auto;
+      border-left:0;
+      border-top:1px solid #d9e1ea;
+    }
+    .side-progress::before{grid-column:1 / -1}
+  }
+  @media (max-width:900px){
+    .summary{grid-template-columns:repeat(2,1fr)}
+    .form-grid{grid-template-columns:repeat(2,1fr)}
+    .topbar{
+      align-items:flex-start;
+      flex-direction:column;
+    }
+    .topbar .right{justify-content:flex-start}
+  }
+
+  /* Lightweight portable mode: 외부 의존성 없이 오래된/저사양 컴퓨터에서도 가볍게 동작하도록 효과 최소화 */
+  :root{
+    --shadow:none;
+    --radius:12px;
+  }
+  *, *::before, *::after{
+    transition:none!important;
+    animation:none!important;
+    scroll-behavior:auto!important;
+  }
+  body{
+    background:#eef2f6!important;
+  }
+  .topbar,
+  .toolbar,
+  .control-panel,
+  .sheet-layout,
+  .fixed-sheet-head,
+  .side-progress,
+  .work-group,
+  .progress-card,
+  .deadline-panel,
+  .modal-card,
+  .stage-menu,
+  button,
+  .card{
+    box-shadow:none!important;
+  }
+  .toolbar,
+  .modal-backdrop{
+    backdrop-filter:none!important;
+  }
+  button:hover{
+    transform:none!important;
+  }
+  .topbar,
+  button,
+  button.primary,
+  button.danger,
+  .card,
+  .work-group-head,
+  .progress-header,
+  .deadline-panel::before,
+  .progress-bar > span,
+  .deadline-bar > span{
+    background-image:none!important;
+  }
+  .topbar{background:#2b3139!important}
+  .work-group-head{background:#3a414b!important}
+  button.primary{background:#16864a!important}
+  .deadline-panel::before{background:#3a414b!important}
+  .progress-bar > span{background:#16a34a!important}
+  .deadline-bar > span{background:#16a34a!important}
+
+</style>
+
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <h1 data-i18n="appTitle">애니메이터 스케줄 보드</h1>
+      <div class="credit" data-i18n="credit">제작 - 미야소</div>
+      <div class="subtitle" data-i18n="appSubtitle">스프레드시트형 제작 스케줄 관리</div>
+    </div>
+    <div class="right">
+      <label class="language-picker"><span data-i18n="language">언어</span>
+        <select id="languageSelect" aria-label="Language">
+          <option value="ko">한국어</option>
+          <option value="ja">日本語</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <button id="exportBtn" data-i18n="exportJson">JSON 내보내기</button>
+      <button id="importBtn" data-i18n="importJson">JSON 가져오기</button>
+    </div>
+  </header>
+
+  <section class="summary" id="summary"></section>
+
+  <section class="toolbar">
+    <label><span data-i18n="projectSelect">작품 선택</span> <select id="projectSelect"></select></label>
+    <label><span data-i18n="episodeSelect">화수 선택</span> <select id="episodeSelect"></select></label>
+    <label><span data-i18n="workName">작품명</span> <input id="projectName" value="カグラバチ"></label>
+    <label><span data-i18n="episodeNo">화수</span> <input class="small" id="episodeNo" value="6"></label>
+    <label><span data-i18n="deadline">마감</span> <input id="deadlineDate" type="date"></label>
+    <label><span data-i18n="filter">필터</span> <input id="filterInput" data-i18n-placeholder="cutSearch" placeholder="CUT 검색"></label>
+    <span class="spacer"></span>
+    <span class="hint" data-i18n="hint">작품명/화수는 상단에서만 수정 / 셀 선택 후 바로 입력</span>
+  </section>
+
+  <section class="control-panel">
+    <div class="control-group">
+      <div class="control-title" data-i18n="workEpisode">작품 / 화수</div>
+      <button class="primary" id="addWorkBtn" data-i18n="addWork">작품 추가</button>
+      <button class="primary" id="addEpisodeBtn" data-i18n="addEpisode">화수 추가</button>
+      <button class="danger" id="removeWorkBtn" data-i18n="removeWork">작품 제거</button>
+      <button class="danger" id="removeEpisodeBtn" data-i18n="removeEpisode">화수 제거</button>
+    </div>
+    <div class="control-group">
+      <div class="control-title" data-i18n="cut">CUT</div>
+      <button class="primary" id="addCutBtn" data-i18n="addCut">컷 추가</button>
+      <button class="danger" id="removeCutBtn" data-i18n="removeSelectedCut">선택 컷 제거</button>
+      <label><span data-i18n="cutCount">CUT 수</span> <input class="tiny" id="bulkCutCount" type="number" min="1" value="10"></label>
+      <button id="addManyBtn" data-i18n="cutPlus">CUT+</button>
+      <button class="danger" id="removeManyBtn" data-i18n="cutMinus">CUT-</button>
+    </div>
+    <div class="control-group danger-zone">
+      <div class="control-title" data-i18n="manage">관리</div>
+      <button class="danger" id="resetBtn" data-i18n="resetAll">전체 초기화</button>
+    </div>
+  </section>
+
+  <div class="wrap">
+    <div class="sheet-layout">
+      <div class="table-zone left-table-zone">
+        <div class="fixed-sheet-head">
+          <table>
+            <colgroup>
+              <col style="width:27.027%">
+              <col style="width:11.712%">
+              <col style="width:14.414%">
+              <col style="width:14.414%">
+              <col style="width:10.811%">
+              <col style="width:10.811%">
+              <col style="width:10.811%">
+            </colgroup>
+            <thead>
+              <tr>
+                <th colspan="2"></th>
+                <th colspan="2" class="group" data-i18n="assigned">담당</th>
+                <th colspan="3" class="group" data-i18n="work">작업</th>
+              </tr>
+              <tr>
+                <th class="thick-left" data-i18n="workName">작품명</th>
+                <th data-i18n="episodeNo">화수</th>
+                <th data-i18n="cut">CUT</th>
+                <th class="thick-right" data-i18n="time">TIME</th>
+                <th>LO</th>
+                <th data-i18n="retake">수정</th>
+                <th class="thick-right" data-i18n="genga">원화</th>
+              </tr>
+            </thead>
+          </table>
+        </div>
+        <div id="tbody" class="sheet-body"></div>
+      </div>
+      <aside class="side-progress" id="progressBoard"></aside>
+    </div>
+    <div class="footnote" data-i18n="footnote">데이터는 브라우저에 자동 저장됩니다. JSON 내보내기로 백업할 수 있습니다.</div>
+  </div>
+</div>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h2 data-i18n="addCut">컷 추가</h2>
+    <div class="form-grid">
+      <label><span data-i18n="cut">CUT</span> <input id="newCut" placeholder="142"></label>
+      <label><span data-i18n="time">TIME</span> <input id="newTime" placeholder="4+6"></label>
+    </div>
+    <div class="modal-actions">
+      <button id="cancelModal" data-i18n="cancel">취소</button>
+      <button class="primary" id="saveNewCut" data-i18n="add">추가</button>
+    </div>
+  </div>
+</div>
+
+<div id="stageMenu" class="stage-menu" hidden>
+  <button type="button" data-stage-choice="progress"><span class="menu-symbol progress">▲</span><span data-i18n="stageProgress">진행중</span></button>
+  <button type="button" data-stage-choice="done"><span class="menu-symbol done">○</span><span data-i18n="stageDone">완료</span></button>
+  <button type="button" data-stage-choice="nigen" class="nigen-option"><span class="menu-symbol nigen">二原</span><span>二原</span></button>
+  <button type="button" data-stage-choice=""><span class="menu-symbol clear">×</span><span data-i18n="stageClear">비움</span></button>
+</div>
+
+<input id="fileInput" type="file" accept="application/json" hidden>
+
+<script>
+const STORAGE_KEY = "animator_multi_project_board_v1";
+const OLD_STORAGE_KEY = "animator_schedule_board_mvp_v1";
+
+const LANG_STORAGE_KEY = "animator_schedule_ui_language_v1";
+const I18N = {
+  ko:{
+    appTitle:"애니메이터 스케줄 보드",
+    appSubtitle:"스프레드시트형 제작 스케줄 관리",
+    credit:"제작 - 미야소",
+    language:"언어",
+    exportJson:"JSON 내보내기",
+    importJson:"JSON 가져오기",
+    projectSelect:"작품 선택",
+    episodeSelect:"화수 선택",
+    workName:"작품명",
+    episodeNo:"화수",
+    episodeSuffix:"화",
+    deadline:"마감",
+    filter:"필터",
+    cutSearch:"CUT 검색",
+    cut:"CUT",
+    time:"TIME",
+    cutPlus:"CUT+",
+    cutMinus:"CUT-",
+    hint:"방향키로 칸 이동 / 셀 선택 후 바로 입력 / 작품명·화수는 상단에서만 수정",
+    workEpisode:"작품 / 화수",
+    addWork:"작품 추가",
+    addEpisode:"화수 추가",
+    removeWork:"작품 제거",
+    removeEpisode:"화수 제거",
+    addCut:"컷 추가",
+    removeSelectedCut:"선택 컷 제거",
+    cutCount:"CUT 수",
+    manage:"관리",
+    resetAll:"전체 초기화",
+    assigned:"담당",
+    work:"작업",
+    progress:"진척",
+    retake:"체크",
+    genga:"원화",
+    complete:"완료",
+    totalCut:"총 CUT",
+    totalTime:"총 TIME",
+    deadlineCalc:"마감 계산",
+    dDay:"마감까지",
+    remainingCuts:"남은 CUT",
+    unset:"미설정",
+    cutLeft:"컷 남음",
+    cutsPerDay:"컷/일",
+    completeText:"complete",
+    episodesCount:"개 화수",
+    workNameMerged:"작품명 칸 병합",
+    emptyEpisode:"이 화수에 표시할 CUT이 없습니다.",
+    noDeadlineStatus:"마감 날짜를 입력하면 LO / 원화별 하루 필요 컷을 계산합니다.",
+    allDone:"모든 할당 컷 완료",
+    deadlinePassed:"마감일이 지났거나 오늘입니다",
+    daysPlan:(days,daily)=>`오늘 포함 ${days}일 동안 완료 기준 하루 ${daily}컷 필요`,
+    footnote:"데이터는 브라우저에 자동 저장됩니다. JSON 내보내기로 백업할 수 있습니다.",
+    cancel:"취소",
+    add:"추가",
+    promptNewWork:"새 작품명을 입력해주세요.",
+    promptFirstEpisode:"첫 화수를 입력해주세요.",
+    promptAddEpisode:(name)=>`${name || "Untitled"}에 추가할 화수를 입력해주세요.`,
+    alertMinWork:"작품은 최소 1개가 필요합니다.",
+    alertMinEpisode:"화수는 최소 1개가 필요합니다.",
+    confirmRemoveWork:(name,count)=>`"${name}" 작품 전체를 삭제할까요?\n포함된 화수 ${count}개가 모두 삭제됩니다.`,
+    confirmRemoveEpisode:(label)=>`${label} 화수를 삭제할까요?`,
+    alertNoCutRows:"제거할 CUT 행이 없습니다.",
+    confirmRemoveBulk:(count)=>`마지막 ${count}개 행 안에 입력된 내용이 있습니다. 그래도 제거할까요?`,
+    confirmReset:"모든 작품/화수/CUT 입력 내용을 초기화할까요? 이 작업은 되돌릴 수 없습니다.",
+    importFail:"가져오기 실패: JSON 형식이 맞는지 확인해주세요.",
+    alertSelectCut:"먼저 제거할 컷 행을 클릭해서 선택해주세요.",
+    emptyRowLabel:(n)=>`${n}번째 빈 행`,
+    confirmRemoveCut:(label)=>`${label}을/를 제거할까요?`,
+    clickLo:"LO: 진행중(노란 세모) → 완료(파란 동그라미) → 비움",
+    clickRetake:"클릭해서 체크 표시",
+    clickGenga:"원화: 진행중(노란 세모) → 완료(파란 동그라미) → 二原(검정) → 비움",
+    stageProgress:"진행중",
+    stageDone:"완료",
+    stageClear:"비움",
+    collapse:"접기",
+    expand:"펼치기",
+    collapsed:"접힘",
+    hiddenCuts:(n)=>`${n} CUT 숨김`,
+    dragWork:"드래그해서 작품 순서 변경"
+  },
+  ja:{
+    appTitle:"アニメーター進行ボード",
+    appSubtitle:"スプレッドシート型制作スケジュール管理",
+    credit:"制作 - みやそ",
+    language:"言語",
+    exportJson:"JSON書き出し",
+    importJson:"JSON読み込み",
+    projectSelect:"作品選択",
+    episodeSelect:"話数選択",
+    workName:"作品名",
+    episodeNo:"話数",
+    episodeSuffix:"話",
+    deadline:"締切",
+    filter:"フィルター",
+    cutSearch:"カット検索",
+    cut:"カット",
+    time:"尺",
+    cutPlus:"カット+",
+    cutMinus:"カット-",
+    hint:"方向キーでセル移動 / セル選択後そのまま入力 / 作品名・話数は上部のみで修正",
+    workEpisode:"作品 / 話数",
+    addWork:"作品追加",
+    addEpisode:"話数追加",
+    removeWork:"作品削除",
+    removeEpisode:"話数削除",
+    addCut:"カット追加",
+    removeSelectedCut:"カット削除",
+    cutCount:"カット数",
+    manage:"管理",
+    resetAll:"全体初期化",
+    assigned:"担当",
+    work:"作業",
+    progress:"進捗",
+    retake:"戻し",
+    genga:"原画",
+    complete:"完了",
+    totalCut:"総カット",
+    totalTime:"総尺",
+    deadlineCalc:"締切計算",
+    dDay:"締切まで",
+    remainingCuts:"残りカット",
+    unset:"未設定",
+    cutLeft:"CUT残り",
+    cutsPerDay:"CUT/日",
+    completeText:"complete",
+    episodesCount:"話数",
+    workNameMerged:"作品名セル結合",
+    emptyEpisode:"この話数に表示するカットがありません。",
+    noDeadlineStatus:"締切日を入力すると、LO / 原画ごとの1日必要カット数を計算します。",
+    allDone:"全割当カット完了",
+    deadlinePassed:"締切日が過ぎているか本日です",
+    daysPlan:(days,daily)=>`本日含め${days}日で、完了基準1日${daily}カット必要`,
+    footnote:"データはブラウザに自動保存されます。JSON書き出しでバックアップできます。",
+    cancel:"キャンセル",
+    add:"追加",
+    promptNewWork:"新しい作品名を入力してください。",
+    promptFirstEpisode:"最初の話数を入力してください。",
+    promptAddEpisode:(name)=>`${name || "Untitled"}に追加する話数を入力してください。`,
+    alertMinWork:"作品は最低1つ必要です。",
+    alertMinEpisode:"話数は最低1つ必要です。",
+    confirmRemoveWork:(name,count)=>`「${name}」作品全体を削除しますか？\n含まれる話数${count}件がすべて削除されます。`,
+    confirmRemoveEpisode:(label)=>`${label}を削除しますか？`,
+    alertNoCutRows:"削除するカット行がありません。",
+    confirmRemoveBulk:(count)=>`最後の${count}行に入力済みの内容があります。それでも削除しますか？`,
+    confirmReset:"すべての作品/話数/CUT入力内容を初期化しますか？この操作は元に戻せません。",
+    importFail:"読み込み失敗：JSON形式を確認してください。",
+    alertSelectCut:"先に削除するカット行をクリックして選択してください。",
+    emptyRowLabel:(n)=>`${n}番目の空行`,
+    confirmRemoveCut:(label)=>`${label}を削除しますか？`,
+    clickLo:"LO：進行中(黄色三角) → 完了(青丸) → 空欄",
+    clickRetake:"クリックして戻しチェック",
+    clickGenga:"原画：進行中(黄色三角) → 完了(青丸) → 二原(黒) → 空欄",
+    stageProgress:"進行中",
+    stageDone:"完了",
+    stageClear:"空欄",
+    collapse:"折りたたむ",
+    expand:"開く",
+    collapsed:"折りたたみ",
+    hiddenCuts:(n)=>`${n}カット非表示`,
+    dragWork:"ドラッグして作品順を変更"
+  },
+  en:{
+    appTitle:"Animator Schedule Board",
+    appSubtitle:"Spreadsheet-style production schedule tracker",
+    credit:"Created by - Miyaso",
+    language:"Language",
+    exportJson:"Export JSON",
+    importJson:"Import JSON",
+    projectSelect:"Project select",
+    episodeSelect:"Episode select",
+    workName:"Project",
+    episodeNo:"Episode",
+    episodeSuffix:"EP",
+    deadline:"Deadline",
+    filter:"Filter",
+    cutSearch:"Search CUT",
+    cut:"CUT",
+    time:"TIME",
+    cutPlus:"CUT+",
+    cutMinus:"CUT-",
+    hint:"Move with arrow keys / Select a cell and type / Edit project・episode only at the top",
+    workEpisode:"Project / Episode",
+    addWork:"Add project",
+    addEpisode:"Add episode",
+    removeWork:"Remove project",
+    removeEpisode:"Remove episode",
+    addCut:"Add cut",
+    removeSelectedCut:"Remove selected cut",
+    cutCount:"CUT count",
+    manage:"Manage",
+    resetAll:"Reset all",
+    assigned:"Assignment",
+    work:"Task",
+    progress:"Progress",
+    retake:"Check",
+    genga:"genga",
+    complete:"Complete",
+    totalCut:"Total CUT",
+    totalTime:"Total TIME",
+    deadlineCalc:"Deadline calc",
+    dDay:"D-day",
+    remainingCuts:"Remaining",
+    unset:"Not set",
+    cutLeft:"cuts left",
+    cutsPerDay:"cuts/day",
+    completeText:"complete",
+    episodesCount:"episodes",
+    workNameMerged:"project-name cell merged",
+    emptyEpisode:"No CUT rows to display in this episode.",
+    noDeadlineStatus:"Set a deadline to calculate required LO / key-animation cuts per day.",
+    allDone:"All assigned cuts complete",
+    deadlinePassed:"The deadline has passed or is today",
+    daysPlan:(days,daily)=>`${daily} cuts/day needed over ${days} days including today`,
+    footnote:"Data is saved automatically in this browser. Use Export JSON for backup.",
+    cancel:"Cancel",
+    add:"Add",
+    promptNewWork:"Enter the new project name.",
+    promptFirstEpisode:"Enter the first episode number.",
+    promptAddEpisode:(name)=>`Enter the episode number to add to ${name || "Untitled"}.`,
+    alertMinWork:"At least one project is required.",
+    alertMinEpisode:"At least one episode is required.",
+    confirmRemoveWork:(name,count)=>`Remove the entire "${name}" project?\nAll ${count} episodes inside it will be deleted.`,
+    confirmRemoveEpisode:(label)=>`Remove ${label}?`,
+    alertNoCutRows:"There are no CUT rows to remove.",
+    confirmRemoveBulk:(count)=>`The last ${count} rows contain entered data. Remove them anyway?`,
+    confirmReset:"Reset all work/episode/CUT input? This cannot be undone.",
+    importFail:"Import failed. Please check the JSON format.",
+    alertSelectCut:"Click a CUT row first before removing it.",
+    emptyRowLabel:(n)=>`empty row ${n}`,
+    confirmRemoveCut:(label)=>`Remove ${label}?`,
+    clickLo:"LO: in progress (yellow triangle) → done (blue circle) → clear",
+    clickRetake:"Click to check",
+    clickGenga:"genga: in progress (yellow triangle) → done (blue circle) → nigen (black) → clear",
+    stageProgress:"In progress",
+    stageDone:"Done",
+    stageClear:"Clear",
+    collapse:"Collapse",
+    expand:"Expand",
+    collapsed:"Collapsed",
+    hiddenCuts:(n)=>`${n} CUT hidden`,
+    dragWork:"Drag to reorder projects"
+  }
+};
+
+
+function safeGetItem(key){
+  try{
+    return window.localStorage ? window.localStorage(key) : null;
+  }catch(e){
+    return null;
+  }
+}
+
+function safeSetItem(key, value){
+  try{
+    if(window.localStorage) window.localStorage(key, value);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+function safeRemoveItem(key){
+  try{
+    if(window.localStorage) window.localStorage(key);
+    return true;
+  }catch(e){
+    return false;
+  }
+}
+
+let uiLang = safeGetItem(LANG_STORAGE_KEY) || "ko";
+
+function t(key, ...args){
+  const value = (I18N[uiLang] && I18N[uiLang][key]) || I18N.ko[key] || key;
+  return typeof value === "function" ? value(...args) : value;
+}
+
+function applyLanguage(){
+  document.documentElement.lang = uiLang;
+  document.querySelectorAll("[data-i18n]").forEach(el => {
+    el.textContent = t(el.dataset.i18n);
+  });
+  document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
+    el.placeholder = t(el.dataset.i18nPlaceholder);
+  });
+  const select = document.getElementById("languageSelect");
+  if(select) select.value = uiLang;
+  const progress = document.getElementById("progressBoard");
+  if(progress) progress.dataset.title = t("progress");
+}
+
+const defaultCuts = [
+  {cut:"111", time:"2+12", work:{lo:false, loState:"", retake:false, genga:false, gengaState:""}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"113", time:"4+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"114", time:"3+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"115", time:"4+18", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"116", time:"6+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"117", time:"5+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"119", time:"6+18", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"120", time:"2+18", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"121", time:"6+18", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"122", time:"7+0", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"123", time:"6+12", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"124", time:"10+12", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"125", time:"5+6", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"126", time:"5+0", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"127", time:"5+12", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"128", time:"5+12", work:{lo:true, retake:false, genga:false}, owner:"", deadline:"", status:"LO", memo:""},
+  {cut:"129", time:"2+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"130", time:"12+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"131", time:"2+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"132", time:"6+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"133", time:"4+18", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"134", time:"6+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"135", time:"3+12", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"136", time:"4+6", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"137", time:"3+18", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"138", time:"5+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"139", time:"3+12", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""},
+  {cut:"141", time:"4+0", work:{lo:false, retake:false, genga:false}, owner:"", deadline:"", status:"", memo:""}
+];
+
+function makeProject(projectName="カグラバチ", episodeNo="6", cuts=null, deadlineDate=""){
+  return {
+    id:"p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7),
+    projectName,
+    episodeNo,
+    deadlineDate,
+    cuts: cuts ? JSON.parse(JSON.stringify(cuts)) : []
+  };
+}
+
+function blankCut(){
+  return {cut:"", time:"", work:{lo:false, loState:"", retake:false, genga:false, gengaState:""}, owner:"", deadline:"", status:"", memo:""};
+}
+
+function blankCuts(count=10){
+  return Array.from({length:count}, () => blankCut());
+}
+
+function makeEmptyState(){
+  return {
+    selectedProjectIndex:0,
+    collapsedWorks:{},
+    collapsedEpisodes:{},
+    projects:[makeProject("", "", blankCuts(10), "")]
+  };
+}
+
+function getBulkCutCount(){
+  const input = document.getElementById("bulkCutCount");
+  const n = Math.max(1, Math.min(999, parseInt(input?.value || "10", 10) || 10));
+  if(input) input.value = String(n);
+  return n;
+}
+
+let state = loadState();
+let selectedProjectIndex = state.selectedProjectIndex || 0;
+let selectedIndex = null;
+
+function currentProject(){
+  if(!state.projects.length){
+    state.projects.push(makeProject());
+    selectedProjectIndex = 0;
+  }
+  if(selectedProjectIndex < 0 || selectedProjectIndex >= state.projects.length){
+    selectedProjectIndex = 0;
+  }
+  return state.projects[selectedProjectIndex];
+}
+
+function normalizeState(parsed){
+  if(parsed && Array.isArray(parsed.projects)){
+    parsed.projects.forEach(p => {
+      p.id = p.id || ("p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7));
+      p.projectName = p.projectName ?? "Untitled";
+      p.episodeNo = p.episodeNo ?? "";
+      p.deadlineDate = p.deadlineDate ?? "";
+      p.cuts = Array.isArray(p.cuts) ? p.cuts : [];
+    });
+    parsed.selectedProjectIndex = parsed.selectedProjectIndex ?? 0;
+    parsed.collapsedWorks = parsed.collapsedWorks && typeof parsed.collapsedWorks === "object" ? parsed.collapsedWorks : {};
+    parsed.collapsedEpisodes = parsed.collapsedEpisodes && typeof parsed.collapsedEpisodes === "object" ? parsed.collapsedEpisodes : {};
+    return parsed;
+  }
+
+  if(parsed && Array.isArray(parsed.cuts)){
+    return {
+      selectedProjectIndex:0,
+      collapsedWorks:{},
+      collapsedEpisodes:{},
+      projects:[makeProject(parsed.projectName || "カグラバチ", parsed.episodeNo || "6", parsed.cuts, parsed.deadlineDate || "")]
+    };
+  }
+
+  return {
+    selectedProjectIndex:0,
+    collapsedWorks:{},
+    collapsedEpisodes:{},
+    projects:[makeProject("カグラバチ", "6", defaultCuts, "")]
+  };
+}
+
+function loadState(){
+  const saved = safeGetItem(STORAGE_KEY);
+  if(saved){
+    try { return normalizeState(JSON.parse(saved)); } catch(e) {}
+  }
+
+  const oldSaved = safeGetItem(OLD_STORAGE_KEY);
+  if(oldSaved){
+    try { return normalizeState(JSON.parse(oldSaved)); } catch(e) {}
+  }
+
+  return normalizeState(null);
+}
+
+function saveState(){
+  state.selectedProjectIndex = selectedProjectIndex;
+  state.collapsedWorks = state.collapsedWorks || {};
+  state.collapsedEpisodes = state.collapsedEpisodes || {};
+  safeSetItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+let saveTimer = null;
+let renderTimer = null;
+
+function scheduleSave(){
+  if(saveTimer) clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    saveState();
+  }, 160);
+}
+
+function scheduleRenderTable(delay=90){
+  if(renderTimer) clearTimeout(renderTimer);
+  renderTimer = setTimeout(() => {
+    renderTimer = null;
+    renderTable();
+  }, delay);
+}
+
+function projectLabel(project){
+  return `${project.projectName || "Untitled"} / ${project.episodeNo || "-"}${t("episodeSuffix")}`;
+}
+
+function normalizeWorkName(name){
+  return String(name || "Untitled").trim() || "Untitled";
+}
+
+function groupedProjects(){
+  const groups = [];
+  const map = new Map();
+
+  state.projects.forEach((project, index) => {
+    const key = normalizeWorkName(project.projectName);
+    if(!map.has(key)){
+      const group = {name:key, items:[]};
+      map.set(key, group);
+      groups.push(group);
+    }
+    map.get(key).items.push({project, index});
+  });
+
+  return groups;
+}
+
+function workCollapseKey(name){
+  return normalizeWorkName(name);
+}
+
+function episodeCollapseKey(project, index){
+  if(!project.id){
+    project.id = "p_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,7);
+  }
+  return project.id || `episode_${index}`;
+}
+
+function isWorkCollapsed(name){
+  state.collapsedWorks = state.collapsedWorks || {};
+  return Boolean(state.collapsedWorks[workCollapseKey(name)]);
+}
+
+function isEpisodeCollapsed(project, index){
+  state.collapsedEpisodes = state.collapsedEpisodes || {};
+  return Boolean(state.collapsedEpisodes[episodeCollapseKey(project, index)]);
+}
+
+function setWorkCollapsed(name, collapsed){
+  state.collapsedWorks = state.collapsedWorks || {};
+  const key = workCollapseKey(name);
+  if(collapsed) state.collapsedWorks[key] = true;
+  else delete state.collapsedWorks[key];
+}
+
+function setEpisodeCollapsed(project, index, collapsed){
+  state.collapsedEpisodes = state.collapsedEpisodes || {};
+  const key = episodeCollapseKey(project, index);
+  if(collapsed) state.collapsedEpisodes[key] = true;
+  else delete state.collapsedEpisodes[key];
+}
+
+function reorderWorkGroups(fromKey, toKey, placeAfter=false){
+  if(!fromKey || !toKey || fromKey === toKey) return false;
+
+  const selectedId = currentProject()?.id;
+  const groups = groupedProjects();
+  const fromIndex = groups.findIndex(group => workCollapseKey(group.name) === fromKey);
+  const toIndex = groups.findIndex(group => workCollapseKey(group.name) === toKey);
+  if(fromIndex < 0 || toIndex < 0) return false;
+
+  const [moved] = groups.splice(fromIndex, 1);
+  let insertIndex = groups.findIndex(group => workCollapseKey(group.name) === toKey);
+  if(insertIndex < 0) insertIndex = groups.length;
+  if(placeAfter) insertIndex += 1;
+
+  groups.splice(insertIndex, 0, moved);
+  state.projects = groups.flatMap(group => group.items.map(item => item.project));
+
+  const nextSelected = state.projects.findIndex(project => project.id === selectedId);
+  selectedProjectIndex = nextSelected >= 0 ? nextSelected : 0;
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  return true;
+}
+
+function clearWorkDropClasses(){
+  document.querySelectorAll("#tbody .work-group.drop-before, #tbody .work-group.drop-after, #tbody .work-group.dragging").forEach(el => {
+    el.classList.remove("drop-before","drop-after","dragging");
+  });
+}
+
+function getProjectCounts(project){
+  const oldSelectedProjectIndex = selectedProjectIndex;
+  const idx = state.projects.indexOf(project);
+  selectedProjectIndex = idx >= 0 ? idx : oldSelectedProjectIndex;
+  const counts = getCounts();
+  selectedProjectIndex = oldSelectedProjectIndex;
+  return counts;
+}
+
+function timeToFrames(t){
+  if(!t) return 0;
+  const parts = String(t).split("+").map(x => parseInt(x.trim(),10));
+  const sec = isNaN(parts[0]) ? 0 : parts[0];
+  const frames = isNaN(parts[1]) ? 0 : parts[1];
+  return sec * 24 + frames;
+}
+
+function framesToTime(frames){
+  const sec = Math.floor(frames / 24);
+  const f = frames % 24;
+  return sec + "+" + f;
+}
+
+function hasCutNumber(c){
+  return String(c.cut ?? "").trim() !== "";
+}
+
+function normalizeStageState(value, fallbackDone=false){
+  if(["progress","done","nigen"].includes(value)) return value;
+  return fallbackDone ? "done" : "";
+}
+
+function normalizeCutWork(c){
+  c.work = c.work || {};
+  c.work.retake = Boolean(c.work.retake);
+
+  const hasLoState = Object.prototype.hasOwnProperty.call(c.work, "loState");
+  const hasGengaState = Object.prototype.hasOwnProperty.call(c.work, "gengaState");
+
+  // 기존 저장 데이터는 boolean 값을 done으로 변환하되,
+  // 사용자가 완료 표시를 다시 비웠을 때는 빈 상태가 유지되도록 한다.
+  c.work.loState = normalizeStageState(c.work.loState, !hasLoState && Boolean(c.work.lo));
+  c.work.gengaState = normalizeStageState(c.work.gengaState, !hasGengaState && Boolean(c.work.genga));
+
+  c.work.lo = c.work.loState === "done";
+  c.work.genga = c.work.gengaState === "done";
+  c.work.nigen = c.work.gengaState === "nigen";
+  return c;
+}
+
+function stageCellClass(state){
+  if(state === "done") return "state-done";
+  if(state === "progress") return "state-progress";
+  if(state === "nigen") return "state-nigen";
+  return "";
+}
+
+function cycleStageState(state, allowNigen=false){
+  if(state === "progress") return "done";
+  if(state === "done") return allowNigen ? "nigen" : "";
+  if(state === "nigen") return "";
+  return "progress";
+}
+
+function getRowStageClass(c){
+  normalizeCutWork(c);
+  if(c.work.gengaState === "done") return "row-stage-genga";
+  if(c.work.gengaState === "nigen") return "row-stage-nigen";
+  if(c.work.gengaState === "progress" || c.work.loState === "progress" || c.work.retake) return "row-stage-progress";
+  if(c.work.loState === "done") return "row-stage-lo";
+  return "";
+}
+
+function updateStatusFromWork(c){
+  normalizeCutWork(c);
+  if(c.work.gengaState === "nigen") c.status = "二原";
+  else if(c.work.gengaState === "done") c.status = t("genga");
+  else if(c.work.gengaState === "progress") c.status = `${t("genga")} ${t("stageProgress")}`;
+  else if(c.work.retake) c.status = t("retake");
+  else if(c.work.loState === "done") c.status = "LO";
+  else if(c.work.loState === "progress") c.status = `LO ${t("stageProgress")}`;
+  else c.status = "";
+  return c;
+}
+
+let stageMenuTarget = null;
+
+function applyStageChoiceToCut(key, cut, choice){
+  normalizeCutWork(cut);
+  const next = choice || "";
+
+  if(key === "lo"){
+    cut.work.loState = next === "nigen" ? "" : next;
+    cut.work.lo = cut.work.loState === "done";
+  } else if(key === "genga"){
+    cut.work.gengaState = next;
+    cut.work.genga = cut.work.gengaState === "done";
+    cut.work.nigen = cut.work.gengaState === "nigen";
+  }
+
+  normalizeCutWork(cut);
+  updateStatusFromWork(cut);
+}
+
+function getStageCutFromCell(cell){
+  const tr = cell?.closest("tr");
+  const key = cell?.dataset?.work;
+  const projectIndex = Number(cell?.dataset?.projectIndex ?? tr?.dataset?.projectIndex ?? selectedProjectIndex);
+  const cutIndex = Number(cell?.dataset?.cutIndex ?? tr?.dataset?.index);
+
+  if(!["lo","genga"].includes(key)) return null;
+  if(Number.isNaN(projectIndex) || Number.isNaN(cutIndex)) return null;
+  if(!state.projects[projectIndex] || !state.projects[projectIndex].cuts[cutIndex]) return null;
+
+  return {key, projectIndex, cutIndex};
+}
+
+function showStageMenu(e, cell){
+  const target = getStageCutFromCell(cell);
+  if(!target) return;
+
+  e.preventDefault();
+  stageMenuTarget = target;
+  selectedProjectIndex = target.projectIndex;
+  selectedIndex = target.cutIndex;
+
+  const menu = document.getElementById("stageMenu");
+  menu.classList.toggle("allow-nigen", target.key === "genga");
+  menu.hidden = false;
+
+  const margin = 8;
+  const rect = menu.getBoundingClientRect();
+  let left = e.clientX;
+  let top = e.clientY;
+  left = Math.min(left, window.innerWidth - rect.width - margin);
+  top = Math.min(top, window.innerHeight - rect.height - margin);
+  menu.style.left = Math.max(margin, left) + "px";
+  menu.style.top = Math.max(margin, top) + "px";
+}
+
+function hideStageMenu(){
+  const menu = document.getElementById("stageMenu");
+  if(menu) menu.hidden = true;
+  stageMenuTarget = null;
+}
+
+function getAssignedCuts(project=currentProject()){
+  return project.cuts.filter(hasCutNumber);
+}
+
+function getEpisodeTotalFrames(project){
+  return getAssignedCuts(project).reduce((sum, cut) => sum + timeToFrames(cut.time), 0);
+}
+
+function getEpisodeTotalTime(project){
+  return framesToTime(getEpisodeTotalFrames(project));
+}
+
+function getCounts(){
+  const project = currentProject();
+  project.cuts.forEach(normalizeCutWork);
+  const assigned = getAssignedCuts(project);
+  const total = assigned.length;
+  const lo = assigned.filter(c => normalizeCutWork(c).work.loState === "done").length;
+  const retake = assigned.filter(c => normalizeCutWork(c).work.retake).length;
+  const genga = assigned.filter(c => normalizeCutWork(c).work.gengaState === "done").length;
+  const totalFrames = assigned.reduce((sum,c) => sum + timeToFrames(c.time), 0);
+  const complete = assigned.filter(c => {
+    normalizeCutWork(c);
+    return c.work.loState === "done" && c.work.retake && c.work.gengaState === "done";
+  }).length;
+  const remaining = Math.max(total - complete, 0);
+  return {
+    total,
+    lo,
+    retake,
+    genga,
+    totalFrames,
+    complete,
+    remaining,
+    stageRemaining:{
+      lo:Math.max(total - lo, 0),
+      retake:Math.max(total - retake, 0),
+      genga:Math.max(total - genga, 0)
+    }
+  };
+}
+
+function isAlert(c){
+  normalizeCutWork(c);
+  if(!c.deadline || (c.work.loState === "done" && c.work.retake && c.work.gengaState === "done")) return false;
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const d = new Date(c.deadline + "T00:00:00");
+  const diffDays = Math.ceil((d - today) / 86400000);
+  return diffDays <= 2;
+}
+
+function progressClass(done, total){
+  const ratio = total ? done / total : 0;
+  if(ratio >= .75) return "ok";
+  if(ratio >= .35) return "mid";
+  return "warn";
+}
+
+function renderSummary(){
+  // 상단 요약 카드 줄은 제거하고, 総尺/Total TIME은 각 에피소드별로 표시한다.
+  const summary = document.getElementById("summary");
+  if(summary) summary.innerHTML = "";
+}
+
+
+
+function formatDday(diff){
+  if(diff === null || diff === undefined || Number.isNaN(diff)) return "-";
+  if(diff === 0) return "D-Day";
+  if(diff > 0) return `D-${diff}`;
+  return `D+${Math.abs(diff)}`;
+}
+
+function getDeadlineStats(){
+  const counts = getCounts();
+  const project = currentProject();
+  const deadline = project.deadlineDate || "";
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  const base = {
+    hasDeadline:false,
+    deadline:"",
+    dDay:null,
+    dDayLabel:"-",
+    daysLeft:null,
+    dailyCuts:null,
+    remaining:counts.remaining,
+    progressPercent:counts.total ? Math.round((counts.complete / counts.total) * 100) : 0,
+    stageStats:[
+      {key:"lo", label:"LO", done:counts.lo, remaining:counts.stageRemaining.lo, percent:counts.total ? Math.round((counts.lo / counts.total) * 100) : 0, dailyCuts:null},
+      {key:"genga", label:t("genga"), done:counts.genga, remaining:counts.stageRemaining.genga, percent:counts.total ? Math.round((counts.genga / counts.total) * 100) : 0, dailyCuts:null}
+    ],
+    status:t("noDeadlineStatus")
+  };
+
+  if(!deadline){
+    return base;
+  }
+
+  const d = new Date(deadline + "T00:00:00");
+  const diff = Math.ceil((d - today) / 86400000);
+  const daysLeft = Math.max(diff + 1, 0); // 오늘 작업 가능일 포함
+  const dailyCuts = daysLeft > 0 ? Math.ceil(counts.remaining / daysLeft * 10) / 10 : counts.remaining;
+  const progressPercent = counts.total ? Math.round((counts.complete / counts.total) * 100) : 0;
+
+  const stageStats = base.stageStats.map(stage => {
+    const daily = daysLeft > 0 ? Math.ceil(stage.remaining / daysLeft * 10) / 10 : stage.remaining;
+    return {...stage, dailyCuts:daily};
+  });
+
+  let status = "";
+  if(counts.remaining === 0){
+    status = t("allDone");
+  } else if(daysLeft <= 0){
+    status = t("deadlinePassed");
+  } else {
+    status = t("daysPlan", daysLeft, dailyCuts);
+  }
+
+  return {
+    hasDeadline:true,
+    deadline,
+    dDay:diff,
+    dDayLabel:formatDday(diff),
+    daysLeft,
+    dailyCuts,
+    remaining:counts.remaining,
+    progressPercent,
+    stageStats,
+    status
+  };
+}
+
+function renderProgressBoard(){
+  const counts = getCounts();
+  const deadlineStats = getDeadlineStats();
+  const items = [
+    ["LO", counts.lo],
+    [t("retake"), counts.retake],
+    [t("genga"), counts.genga]
+  ];
+
+  const total = Math.max(counts.total, 1);
+  document.getElementById("progressBoard").innerHTML = `
+    ${items.map(([label, value]) => {
+      const percent = Math.round((value / total) * 100);
+      const hue = Math.round(percent * 1.28);
+      return `
+        <div class="progress-tile" style="--hue:${hue}; --p:${percent}">
+          <div class="progress-tile-head">
+            <span>${escapeHtml(label)}</span>
+            <span>${percent}%</span>
+          </div>
+          <div class="progress-count">${value}<small> / ${counts.total}</small></div>
+          <div class="progress-bar"><i></i></div>
+          <div class="progress-percent">${percent}% ${escapeHtml(t("completeText"))}</div>
+        </div>
+      `;
+    }).join("")}
+    <div class="deadline-panel">
+      <div class="deadline-title">
+        <span>${escapeHtml(t("deadlineCalc"))}</span>
+        <span>${deadlineStats.deadline ? escapeHtml(deadlineStats.deadline) : escapeHtml(t("unset"))}</span>
+      </div>
+      <div class="deadline-grid">
+        <div class="deadline-metric">
+          <div class="k">${escapeHtml(t("dDay"))}</div>
+          <div class="v">${escapeHtml(deadlineStats.dDayLabel)}</div>
+        </div>
+        <div class="deadline-metric">
+          <div class="k">${escapeHtml(t("remainingCuts"))}</div>
+          <div class="v">${escapeHtml(deadlineStats.remaining)}</div>
+        </div>
+      </div>
+      <div class="deadline-note ${deadlineStats.hasDeadline && deadlineStats.daysLeft <= 0 && deadlineStats.remaining > 0 ? "deadline-warn" : "deadline-ok"}">${escapeHtml(deadlineStats.status)}</div>
+      <div class="deadline-stage-list">
+        ${deadlineStats.stageStats.map(stage => `
+          <div class="deadline-stage">
+            <div class="deadline-stage-name">${escapeHtml(stage.label)}</div>
+            <div class="deadline-stage-bar" style="--stage-p:${stage.percent}"><i></i></div>
+            <div class="deadline-stage-meta">
+              ${stage.remaining}${escapeHtml(t("cutLeft"))}<br>
+              <span class="deadline-stage-daily">${deadlineStats.hasDeadline ? `${stage.dailyCuts}${t("cutsPerDay")}` : `-${t("cutsPerDay")}`}</span>
+            </div>
+          </div>
+        `).join("")}
+      </div>
+    </div>
+  `;
+}
+
+function renderProjectEpisodeSelectors(){
+  const projectSelect = document.getElementById("projectSelect");
+  const episodeSelect = document.getElementById("episodeSelect");
+  if(!projectSelect || !episodeSelect) return;
+
+  const groups = groupedProjects();
+  const current = currentProject();
+  const currentKey = normalizeWorkName(current.projectName);
+
+  projectSelect.innerHTML = groups.map(group => {
+    const firstIndex = group.items[0]?.index ?? 0;
+    const selected = normalizeWorkName(group.name) === currentKey ? "selected" : "";
+    const label = `${group.name || "Untitled"} · ${group.items.length}${t("episodeSuffix")}`;
+    return `<option value="${firstIndex}" ${selected}>${escapeHtml(label)}</option>`;
+  }).join("");
+
+  const currentGroup = groups.find(group => normalizeWorkName(group.name) === currentKey) || groups[0];
+  const episodeItems = currentGroup ? currentGroup.items : state.projects.map((p, index) => ({project:p, index}));
+  episodeSelect.innerHTML = episodeItems.map(item => {
+    const selected = item.index === selectedProjectIndex ? "selected" : "";
+    const label = `${item.project.episodeNo || "-"}${t("episodeSuffix")} · ${item.project.cuts.filter(hasCutNumber).length} ${t("cut")}`;
+    return `<option value="${item.index}" ${selected}>${escapeHtml(label)}</option>`;
+  }).join("");
+}
+
+function refreshCurrentControls(){
+  const project = currentProject();
+  document.getElementById("projectName").value = project.projectName;
+  document.getElementById("episodeNo").value = project.episodeNo;
+  document.getElementById("deadlineDate").value = project.deadlineDate || "";
+  renderProjectEpisodeSelectors();
+  renderSummary();
+  renderProgressBoard();
+}
+
+function placeCaretAtEnd(el){
+  if(!el || !el.isContentEditable) return;
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  range.collapse(false);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+
+function updateCellValueFromDom(td){
+  if(!td) return;
+  const field = td.dataset.field;
+  const value = td.textContent.trim();
+  const tr = td.closest("tr");
+
+  if(field === "projectName"){
+    const pidx = Number(td.dataset.projectIndex ?? selectedProjectIndex);
+    const indexes = td.dataset.groupIndexes
+      ? td.dataset.groupIndexes.split(",").map(Number).filter(n => !Number.isNaN(n))
+      : [pidx];
+    indexes.forEach(idx => {
+      if(state.projects[idx]) state.projects[idx].projectName = value;
+    });
+    selectedProjectIndex = pidx;
+  } else if(field === "episodeNo"){
+    const pidx = Number(td.dataset.projectIndex ?? selectedProjectIndex);
+    if(state.projects[pidx]) state.projects[pidx].episodeNo = value;
+    selectedProjectIndex = pidx;
+  } else if(["cut","time"].includes(field)){
+    const pidx = Number(td.dataset.projectIndex ?? tr?.dataset.projectIndex ?? selectedProjectIndex);
+    const idx = Number(td.dataset.cutIndex ?? tr?.dataset.index);
+    if(!Number.isNaN(pidx)) selectedProjectIndex = pidx;
+    if(!Number.isNaN(idx) && currentProject().cuts[idx]){
+      currentProject().cuts[idx][field] = value;
+    }
+  }
+}
+
+function getIndexForCell(cell, tr){
+  const field = cell?.dataset?.field;
+  if(field === "projectName" || field === "episodeNo") return null;
+  if(cell?.dataset?.cutIndex !== undefined) return Number(cell.dataset.cutIndex);
+  if(!tr || tr.dataset.index === "" || tr.dataset.index === undefined) return null;
+  return Number(tr.dataset.index);
+}
+
+function renderTable(){
+  const project = currentProject();
+
+  document.getElementById("projectName").value = project.projectName;
+  document.getElementById("episodeNo").value = project.episodeNo;
+  document.getElementById("deadlineDate").value = project.deadlineDate || "";
+  renderProjectEpisodeSelectors();
+
+  const filter = document.getElementById("filterInput").value.trim().toLowerCase();
+  const tbody = document.getElementById("tbody");
+
+  tbody.innerHTML = `
+    <div class="project-stack">
+      ${groupedProjects().map(group => renderWorkGroup(group, filter)).join("")}
+    </div>
+  `;
+
+  applySelectionClasses();
+  renderSummary();
+  renderProgressBoard();
+}
+
+function renderWorkGroup(group, filter){
+  const activeInside = group.items.some(item => item.index === selectedProjectIndex);
+  const totalCuts = group.items.reduce((sum, item) => sum + item.project.cuts.filter(hasCutNumber).length, 0);
+  const episodeCount = group.items.length;
+  const workCollapsed = isWorkCollapsed(group.name);
+  const workToggle = workCollapsed ? "▶" : "▼";
+  const workToggleLabel = workCollapsed ? t("expand") : t("collapse");
+
+  const headerHtml = `
+      <div class="work-group-head" draggable="true" data-drag-work="${escapeHtml(workCollapseKey(group.name))}" title="${escapeHtml(t("dragWork"))}">
+        <div class="work-group-head-main">
+          <span class="drag-handle" aria-hidden="true">↕</span>
+          <button type="button" class="collapse-toggle" data-collapse-work="${escapeHtml(workCollapseKey(group.name))}" title="${escapeHtml(workToggleLabel)}" aria-label="${escapeHtml(workToggleLabel)}">${workToggle}</button>
+          <strong>${escapeHtml(group.name)}</strong>
+        </div>
+        <span></span>
+      </div>`;
+
+  if(workCollapsed){
+    return `
+      <section class="work-group collapsed ${activeInside ? "active" : ""}" data-work-name="${escapeHtml(group.name)}" data-work-key="${escapeHtml(workCollapseKey(group.name))}">
+        ${headerHtml}
+      </section>
+    `;
+  }
+
+  const prepared = group.items.map(item => {
+    const episodeCollapsed = isEpisodeCollapsed(item.project, item.index);
+    const filteredRows = item.project.cuts
+      .map((cut, index) => ({cut,index}))
+      .filter(({cut}) => !filter || String(cut.cut).toLowerCase().includes(filter) || String(cut.time).toLowerCase().includes(filter));
+
+    return {
+      project:item.project,
+      index:item.index,
+      rows:filteredRows,
+      collapsed:episodeCollapsed,
+      rowSpan:episodeCollapsed ? 1 : Math.max(filteredRows.length, 1)
+    };
+  });
+
+  const groupRowSpan = prepared.reduce((sum, item) => sum + item.rowSpan, 0);
+  let groupNameInserted = false;
+
+  const rowsHtml = prepared.map(item => {
+    const project = item.project;
+    const projectIndex = item.index;
+    const activeRow = projectIndex === selectedProjectIndex ? "work-row-active" : "";
+    const groupIndexes = group.items.map(g => g.index).join(",");
+    const episodeToggle = item.collapsed ? "▶" : "▼";
+    const episodeToggleLabel = item.collapsed ? t("expand") : t("collapse");
+    const episodeTotalTime = getEpisodeTotalTime(project);
+    const episodeCellHtml = `<div class="episode-cell-content"><button type="button" class="episode-collapse-toggle" data-collapse-episode="${escapeHtml(episodeCollapseKey(project, projectIndex))}" data-project-index="${projectIndex}" title="${escapeHtml(episodeToggleLabel)}" aria-label="${escapeHtml(episodeToggleLabel)}">${episodeToggle}</button><div class="episode-info"><span>${escapeHtml(project.episodeNo)}</span><span class="episode-total-time">${escapeHtml(t("totalTime"))}: ${escapeHtml(episodeTotalTime)}</span></div></div>`;
+
+    if(item.collapsed){
+      const showProjectCell = !groupNameInserted;
+      groupNameInserted = true;
+      return `
+        <tr class="episode-start collapsed-episode-row ${activeRow}" data-project-index="${projectIndex}" data-index="">
+          ${showProjectCell ? `<td rowspan="${groupRowSpan}" class="project-cell thick-left selectable-cell" data-field="projectName" data-project-index="${projectIndex}" data-group-indexes="${groupIndexes}" data-row="${projectIndex * 10000}" data-col="0">${escapeHtml(group.name)}</td>` : ""}
+          <td rowspan="1" class="episode-cell selectable-cell" data-field="episodeNo" data-project-index="${projectIndex}" data-row="${projectIndex * 10000}" data-col="1">${episodeCellHtml}</td>
+          <td colspan="5" class="empty-row">${escapeHtml(t("collapsed"))} · ${escapeHtml(t("hiddenCuts", item.project.cuts.filter(hasCutNumber).length))} · ${escapeHtml(t("totalTime"))}: ${escapeHtml(getEpisodeTotalTime(item.project))}</td>
+        </tr>
+      `;
+    }
+
+    if(item.rows.length === 0){
+      const showProjectCell = !groupNameInserted;
+      groupNameInserted = true;
+      return `
+        <tr class="episode-start ${activeRow}" data-project-index="${projectIndex}" data-index="">
+          ${showProjectCell ? `<td rowspan="${groupRowSpan}" class="project-cell thick-left selectable-cell" data-field="projectName" data-project-index="${projectIndex}" data-group-indexes="${groupIndexes}" data-row="${projectIndex * 10000}" data-col="0">${escapeHtml(group.name)}</td>` : ""}
+          <td rowspan="1" class="episode-cell selectable-cell" data-field="episodeNo" data-project-index="${projectIndex}" data-row="${projectIndex * 10000}" data-col="1">${episodeCellHtml}</td>
+          <td colspan="5" class="empty-row">${escapeHtml(t("emptyEpisode"))}</td>
+        </tr>
+      `;
+    }
+
+    return item.rows.map(({cut:c,index:i}, rowIdx) => {
+      normalizeCutWork(c);
+      const showProjectCell = !groupNameInserted;
+      if(showProjectCell) groupNameInserted = true;
+      const rowStageClass = getRowStageClass(c);
+      return `<tr class="${rowIdx === 0 ? "episode-start" : ""} ${activeRow} ${rowStageClass}" data-project-index="${projectIndex}" data-index="${i}" data-visible-row="${rowIdx}">
+        ${showProjectCell ? `<td rowspan="${groupRowSpan}" class="project-cell thick-left selectable-cell" data-field="projectName" data-project-index="${projectIndex}" data-group-indexes="${groupIndexes}" data-row="${projectIndex * 10000 + rowIdx}" data-col="0">${escapeHtml(group.name)}</td>` : ""}
+        ${rowIdx === 0 ? `<td rowspan="${item.rows.length}" class="episode-cell selectable-cell" data-field="episodeNo" data-project-index="${projectIndex}" data-row="${projectIndex * 10000 + rowIdx}" data-col="1">${episodeCellHtml}</td>` : ""}
+        <td class="cut-cell selectable-cell" contenteditable="true" spellcheck="false" data-field="cut" data-project-index="${projectIndex}" data-cut-index="${i}" data-row="${projectIndex * 10000 + rowIdx}" data-col="2">${escapeHtml(c.cut)}</td>
+        <td class="time-cell thick-right selectable-cell" contenteditable="true" spellcheck="false" data-field="time" data-project-index="${projectIndex}" data-cut-index="${i}" data-row="${projectIndex * 10000 + rowIdx}" data-col="3">${escapeHtml(c.time)}</td>
+        <td class="work-cell selectable-cell ${stageCellClass(c.work.loState)}" data-work="lo" data-project-index="${projectIndex}" data-cut-index="${i}" data-row="${projectIndex * 10000 + rowIdx}" data-col="4" title="${escapeHtml(t("clickLo"))}"></td>
+        <td class="work-cell selectable-cell ${c.work.retake ? "check-done":""}" data-work="retake" data-project-index="${projectIndex}" data-cut-index="${i}" data-row="${projectIndex * 10000 + rowIdx}" data-col="5" title="${escapeHtml(t("clickRetake"))}"></td>
+        <td class="work-cell thick-right selectable-cell ${stageCellClass(c.work.gengaState)}" data-work="genga" data-project-index="${projectIndex}" data-cut-index="${i}" data-row="${projectIndex * 10000 + rowIdx}" data-col="6" title="${escapeHtml(t("clickGenga"))}"></td>
+      </tr>`;
+    }).join("");
+  }).join("");
+
+  return `
+    <section class="work-group ${activeInside ? "active" : ""}" data-work-name="${escapeHtml(group.name)}" data-work-key="${escapeHtml(workCollapseKey(group.name))}">
+      ${headerHtml}
+      <div class="work-table-wrap">
+        <table>
+          <colgroup>
+            <col style="width:27.027%">
+            <col style="width:11.712%">
+            <col style="width:14.414%">
+            <col style="width:14.414%">
+            <col style="width:10.811%">
+            <col style="width:10.811%">
+            <col style="width:10.811%">
+          </colgroup>
+          <tbody>${rowsHtml}</tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+function escapeHtml(value){
+  return String(value ?? "").replace(/[&<>"']/g, s => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  }[s]));
+}
+
+let selectedCells = new Set();
+let selectionAnchor = null;
+let isShiftDragging = false;
+
+function cellKey(row, col){
+  return `${row}:${col}`;
+}
+
+function getCellCoords(cell){
+  return {
+    row:Number(cell.dataset.row),
+    col:Number(cell.dataset.col)
+  };
+}
+
+function setSingleCellSelection(cell){
+  const {row, col} = getCellCoords(cell);
+  selectedCells = new Set([cellKey(row, col)]);
+  selectionAnchor = {row, col};
+  applySelectionClasses();
+}
+
+function setRangeSelection(from, to){
+  const minRow = Math.min(from.row, to.row);
+  const maxRow = Math.max(from.row, to.row);
+  const minCol = Math.min(from.col, to.col);
+  const maxCol = Math.max(from.col, to.col);
+
+  selectedCells = new Set();
+  for(let r=minRow; r<=maxRow; r++){
+    for(let c=minCol; c<=maxCol; c++){
+      selectedCells.add(cellKey(r, c));
+    }
+  }
+  applySelectionClasses({minRow, maxRow, minCol, maxCol});
+}
+
+function applySelectionClasses(range=null){
+  document.querySelectorAll("#tbody .selectable-cell").forEach(cell => {
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    const key = cellKey(row, col);
+
+    cell.classList.remove(
+      "selected-cell",
+      "selected-range",
+      "range-edge-top",
+      "range-edge-bottom",
+      "range-edge-left",
+      "range-edge-right"
+    );
+
+    if(selectedCells.has(key)){
+      if(selectedCells.size === 1){
+        cell.classList.add("selected-cell");
+      } else {
+        cell.classList.add("selected-range");
+        if(range){
+          if(row === range.minRow) cell.classList.add("range-edge-top");
+          if(row === range.maxRow) cell.classList.add("range-edge-bottom");
+          if(col === range.minCol) cell.classList.add("range-edge-left");
+          if(col === range.maxCol) cell.classList.add("range-edge-right");
+        }
+      }
+    }
+  });
+}
+
+function buildNavigationGrid(){
+  const grid = [];
+
+  document.querySelectorAll("#tbody .work-table-wrap table").forEach(table => {
+    const spans = [];
+    const rows = Array.from(table.querySelectorAll("tbody tr"));
+
+    rows.forEach(tr => {
+      const slots = [];
+
+      for(let c=0; c<7; c++){
+        const span = spans[c];
+        if(span && span.remaining > 0){
+          slots[c] = span.cell;
+          span.remaining -= 1;
+          if(span.remaining <= 0) spans[c] = null;
+        }
+      }
+
+      let col = 0;
+      Array.from(tr.cells).forEach(cell => {
+        while(slots[col]) col += 1;
+
+        const colSpan = Math.max(1, Number(cell.colSpan || 1));
+        const rowSpan = Math.max(1, Number(cell.rowSpan || 1));
+
+        for(let dc=0; dc<colSpan; dc++){
+          slots[col + dc] = cell;
+          if(rowSpan > 1){
+            spans[col + dc] = {cell, remaining:rowSpan - 1};
+          }
+        }
+        col += colSpan;
+      });
+
+      grid.push(slots);
+    });
+  });
+
+  return grid;
+}
+
+function getCurrentSelectedCell(){
+  const active = document.activeElement;
+  if(active && active.matches && active.matches("#tbody .selectable-cell")) return active;
+
+  const selected = document.querySelector("#tbody .selected-cell");
+  if(selected) return selected;
+
+  const key = Array.from(selectedCells)[0];
+  if(!key) return null;
+
+  return Array.from(document.querySelectorAll("#tbody .selectable-cell")).find(cell => {
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    return cellKey(row, col) === key;
+  }) || null;
+}
+
+function findCellInGrid(grid, targetCell){
+  for(let r=0; r<grid.length; r++){
+    for(let c=0; c<7; c++){
+      if(grid[r][c] === targetCell) return {row:r, col:c};
+    }
+  }
+  return null;
+}
+
+function isNavigableCell(cell){
+  return Boolean(cell && cell.classList && cell.classList.contains("selectable-cell"));
+}
+
+function closestNavigableInRow(rowSlots, preferredCol, currentCell=null){
+  let best = null;
+  let bestDist = Infinity;
+
+  for(let c=0; c<7; c++){
+    const cell = rowSlots[c];
+    if(!isNavigableCell(cell) || cell === currentCell) continue;
+
+    const dist = Math.abs(c - preferredCol);
+    if(dist < bestDist){
+      best = cell;
+      bestDist = dist;
+    }
+  }
+
+  return best;
+}
+
+function findArrowTarget(currentCell, arrowKey){
+  const grid = buildNavigationGrid();
+  const pos = findCellInGrid(grid, currentCell);
+  if(!pos) return null;
+
+  if(arrowKey === "ArrowLeft" || arrowKey === "ArrowRight"){
+    const step = arrowKey === "ArrowLeft" ? -1 : 1;
+
+    for(let c=pos.col + step; c>=0 && c<7; c += step){
+      const cell = grid[pos.row][c];
+      if(isNavigableCell(cell) && cell !== currentCell) return cell;
+    }
+    return null;
+  }
+
+  if(arrowKey === "ArrowUp" || arrowKey === "ArrowDown"){
+    const step = arrowKey === "ArrowUp" ? -1 : 1;
+
+    for(let r=pos.row + step; r>=0 && r<grid.length; r += step){
+      const direct = grid[r][pos.col];
+      if(isNavigableCell(direct) && direct !== currentCell) return direct;
+
+      const nearby = closestNavigableInRow(grid[r], pos.col, currentCell);
+      if(nearby) return nearby;
+    }
+  }
+
+  return null;
+}
+
+function selectCellByKeyboard(cell){
+  if(!cell) return;
+
+  const tr = cell.closest("tr");
+  const nextProjectIndex = Number(cell.dataset.projectIndex ?? tr?.dataset.projectIndex ?? selectedProjectIndex);
+  selectedProjectIndex = Number.isNaN(nextProjectIndex) ? selectedProjectIndex : nextProjectIndex;
+
+  selectedIndex = getIndexForCell(cell, tr);
+  if(cell.dataset.cutIndex !== undefined){
+    selectedIndex = Number(cell.dataset.cutIndex);
+  }
+
+  setSingleCellSelection(cell);
+  refreshCurrentControls();
+
+  if(cell.isContentEditable){
+    requestAnimationFrame(() => {
+      if(document.body.contains(cell)){
+        cell.focus();
+        placeCaretAtEnd(cell);
+      }
+    });
+  } else {
+    const active = document.activeElement;
+    if(active && active.isContentEditable) active.blur();
+  }
+
+  cell.scrollIntoView({block:"nearest", inline:"nearest"});
+}
+
+function handleArrowNavigation(e){
+  const arrowKeys = ["ArrowUp","ArrowDown","ArrowLeft","ArrowRight"];
+  if(!arrowKeys.includes(e.key)) return false;
+  if(e.ctrlKey || e.metaKey || e.altKey) return false;
+  if(e.shiftKey) return false;
+
+  const active = document.activeElement;
+  const tbody = document.getElementById("tbody");
+  const isTableEditable = active && active.isContentEditable && tbody.contains(active);
+  const isOutsideForm = active && ["INPUT","TEXTAREA","SELECT"].includes(active.tagName);
+
+  if(isOutsideForm && !isTableEditable) return false;
+
+  const menu = document.getElementById("stageMenu");
+  if(menu && !menu.hidden) return false;
+
+  const currentCell = getCurrentSelectedCell();
+  if(!currentCell) return false;
+
+  if(isTableEditable){
+    updateCellValueFromDom(active);
+    scheduleSave();
+  }
+
+  const targetCell = findArrowTarget(currentCell, e.key);
+  if(!targetCell) return false;
+
+  e.preventDefault();
+  selectCellByKeyboard(targetCell);
+  return true;
+}
+
+document.getElementById("tbody").addEventListener("keydown", e => {
+  if(handleArrowNavigation(e)) return;
+
+  const active = document.activeElement;
+  if(active && active.isContentEditable) return;
+  if(e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+
+  const key = Array.from(selectedCells)[0];
+  if(!key) return;
+  const target = [...document.querySelectorAll("#tbody .selectable-cell")].find(cell => {
+    const row = Number(cell.dataset.row);
+    const col = Number(cell.dataset.col);
+    return cellKey(row, col) === key && cell.isContentEditable;
+  });
+  if(target){
+    const tr = target.closest("tr");
+    selectedProjectIndex = Number(target.dataset.projectIndex ?? tr?.dataset.projectIndex ?? selectedProjectIndex);
+    selectedIndex = getIndexForCell(target, tr);
+    target.focus();
+    placeCaretAtEnd(target);
+  }
+});
+
+document.addEventListener("keydown", e => {
+  handleArrowNavigation(e);
+});
+
+document.addEventListener("mouseup", () => {
+  isShiftDragging = false;
+});
+
+document.addEventListener("keydown", e => {
+  if(e.key === "Shift"){
+    document.body.classList.add("shift-selecting");
+  }
+});
+
+document.addEventListener("keyup", e => {
+  if(e.key === "Shift"){
+    document.body.classList.remove("shift-selecting");
+    isShiftDragging = false;
+  }
+});
+
+let draggedWorkKey = null;
+let dragPlaceAfter = false;
+
+document.getElementById("tbody").addEventListener("dragstart", e => {
+  const header = e.target.closest(".work-group-head[data-drag-work]");
+  if(!header || e.target.closest("button, input, select, [contenteditable='true']")){
+    e.preventDefault();
+    return;
+  }
+
+  draggedWorkKey = header.dataset.dragWork;
+  const group = header.closest(".work-group");
+  if(group) group.classList.add("dragging");
+
+  e.dataTransfer.effectAllowed = "move";
+  e.dataTransfer.setData("text/plain", draggedWorkKey);
+});
+
+document.getElementById("tbody").addEventListener("dragover", e => {
+  if(!draggedWorkKey) return;
+
+  const targetGroup = e.target.closest(".work-group[data-work-key]");
+  if(!targetGroup || targetGroup.dataset.workKey === draggedWorkKey) return;
+
+  e.preventDefault();
+  e.dataTransfer.dropEffect = "move";
+
+  document.querySelectorAll("#tbody .work-group.drop-before, #tbody .work-group.drop-after").forEach(el => {
+    el.classList.remove("drop-before","drop-after");
+  });
+
+  const rect = targetGroup.getBoundingClientRect();
+  dragPlaceAfter = e.clientY > rect.top + rect.height / 2;
+  targetGroup.classList.add(dragPlaceAfter ? "drop-after" : "drop-before");
+});
+
+document.getElementById("tbody").addEventListener("drop", e => {
+  if(!draggedWorkKey) return;
+
+  const targetGroup = e.target.closest(".work-group[data-work-key]");
+  if(!targetGroup) return;
+
+  e.preventDefault();
+  const moved = reorderWorkGroups(draggedWorkKey, targetGroup.dataset.workKey, dragPlaceAfter);
+  draggedWorkKey = null;
+  dragPlaceAfter = false;
+  clearWorkDropClasses();
+
+  if(moved){
+    saveState();
+    renderTable();
+  }
+});
+
+document.getElementById("tbody").addEventListener("dragend", () => {
+  draggedWorkKey = null;
+  dragPlaceAfter = false;
+  clearWorkDropClasses();
+});
+
+document.getElementById("tbody").addEventListener("mousedown", e => {
+  if(e.target.closest("[data-collapse-work], [data-collapse-episode], .drag-handle")) return;
+  const cell = e.target.closest(".selectable-cell");
+  const tr = e.target.closest("tr");
+  if(!cell || !tr) return;
+
+  const nextProjectIndex = Number(cell.dataset.projectIndex ?? tr.dataset.projectIndex ?? selectedProjectIndex);
+  selectedProjectIndex = Number.isNaN(nextProjectIndex) ? selectedProjectIndex : nextProjectIndex;
+  selectedIndex = getIndexForCell(cell, tr);
+
+  // CUT / TIME 입력은 병합 셀이나 sticky 위치가 아니라 셀 자체의 data-cut-index를 기준으로 고정한다.
+  if(cell.dataset.cutIndex !== undefined){
+    selectedIndex = Number(cell.dataset.cutIndex);
+  }
+
+  if(e.shiftKey){
+    e.preventDefault();
+    const target = getCellCoords(cell);
+    if(!selectionAnchor) selectionAnchor = target;
+    isShiftDragging = true;
+    setRangeSelection(selectionAnchor, target);
+  } else {
+    isShiftDragging = false;
+    setSingleCellSelection(cell);
+    refreshCurrentControls();
+
+    if(cell.isContentEditable){
+      // CUT/TIME도 作品名처럼 클릭한 바로 그 셀에 포커스되게 한다.
+      requestAnimationFrame(() => {
+        if(document.body.contains(cell)){
+          cell.focus();
+          if(String(cell.textContent || "").length === 0) placeCaretAtEnd(cell);
+        }
+      });
+    }
+  }
+});
+
+document.getElementById("tbody").addEventListener("mouseover", e => {
+  if(!isShiftDragging) return;
+
+  const cell = e.target.closest(".selectable-cell");
+  if(!cell || !selectionAnchor) return;
+
+  e.preventDefault();
+  setRangeSelection(selectionAnchor, getCellCoords(cell));
+});
+
+document.getElementById("tbody").addEventListener("click", e => {
+  const tr = e.target.closest("tr");
+  if(!tr) return;
+
+  selectedProjectIndex = Number(e.target.dataset.projectIndex ?? tr.dataset.projectIndex ?? selectedProjectIndex);
+  selectedIndex = e.target.dataset.cutIndex !== undefined
+    ? Number(e.target.dataset.cutIndex)
+    : (tr.dataset.index === "" || tr.dataset.index === undefined ? null : Number(tr.dataset.index));
+
+  if(e.target.dataset.work && selectedIndex !== null){
+    const key = e.target.dataset.work;
+    const project = currentProject();
+    const cut = project.cuts[selectedIndex];
+    normalizeCutWork(cut);
+
+    if(key === "lo"){
+      cut.work.loState = cycleStageState(cut.work.loState, false);
+      cut.work.lo = cut.work.loState === "done";
+    } else if(key === "genga"){
+      cut.work.gengaState = cycleStageState(cut.work.gengaState, true);
+      cut.work.genga = cut.work.gengaState === "done";
+      cut.work.nigen = cut.work.gengaState === "nigen";
+    } else if(key === "retake"){
+      cut.work.retake = !cut.work.retake;
+    }
+
+    normalizeCutWork(cut);
+    updateStatusFromWork(cut);
+    saveState();
+    renderTable(); // 체크는 표/進捗/締切을 즉시 갱신
+  }
+});
+
+document.getElementById("tbody").addEventListener("contextmenu", e => {
+  const cell = e.target.closest(".work-cell[data-work='lo'], .work-cell[data-work='genga']");
+  if(!cell) return;
+  showStageMenu(e, cell);
+});
+
+document.getElementById("stageMenu").addEventListener("click", e => {
+  const button = e.target.closest("[data-stage-choice]");
+  if(!button || !stageMenuTarget) return;
+
+  const {key, projectIndex, cutIndex} = stageMenuTarget;
+  const cut = state.projects[projectIndex]?.cuts[cutIndex];
+  if(!cut) return hideStageMenu();
+
+  selectedProjectIndex = projectIndex;
+  selectedIndex = cutIndex;
+  applyStageChoiceToCut(key, cut, button.dataset.stageChoice);
+  saveState();
+  hideStageMenu();
+  renderTable();
+});
+
+document.addEventListener("mousedown", e => {
+  const menu = document.getElementById("stageMenu");
+  if(menu && !menu.hidden && !menu.contains(e.target)){
+    hideStageMenu();
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape") hideStageMenu();
+});
+
+window.addEventListener("resize", hideStageMenu);
+window.addEventListener("scroll", hideStageMenu, true);
+
+document.getElementById("tbody").addEventListener("focusout", e => {
+  const td = e.target.closest("[contenteditable='true']");
+  if(!td) return;
+
+  updateCellValueFromDom(td);
+  saveState();
+
+  const field = td.dataset.field;
+  setTimeout(() => {
+    const active = document.activeElement;
+    const stillEditingTable = active && document.getElementById("tbody").contains(active) && active.isContentEditable;
+
+    if((field === "projectName" || field === "episodeNo") && !stillEditingTable){
+      renderTable();
+    } else {
+      // CUT/TIME은 입력 중 칸이 밀리지 않도록 표 전체를 다시 그리지 않는다.
+      refreshCurrentControls();
+    }
+  }, 0);
+});
+
+document.getElementById("tbody").addEventListener("input", e => {
+  const td = e.target.closest("[contenteditable='true']");
+  if(!td) return;
+
+  updateCellValueFromDom(td);
+  scheduleSave();
+  refreshCurrentControls();
+});
+
+document.getElementById("projectName").addEventListener("input", e => {
+  currentProject().projectName = e.target.value;
+  scheduleSave();
+  scheduleRenderTable();
+});
+document.getElementById("episodeNo").addEventListener("input", e => {
+  currentProject().episodeNo = e.target.value;
+  scheduleSave();
+  scheduleRenderTable();
+});
+
+document.getElementById("deadlineDate").addEventListener("input", e => {
+  currentProject().deadlineDate = e.target.value;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("filterInput").addEventListener("input", () => scheduleRenderTable(80));
+
+document.getElementById("projectSelect").addEventListener("change", e => {
+  selectedProjectIndex = Number(e.target.value);
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("episodeSelect").addEventListener("change", e => {
+  selectedProjectIndex = Number(e.target.value);
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("tbody").addEventListener("click", e => {
+  const workBtn = e.target.closest("[data-collapse-work]");
+  const episodeBtn = e.target.closest("[data-collapse-episode]");
+
+  if(workBtn || episodeBtn){
+    e.preventDefault();
+    e.stopImmediatePropagation();
+
+    if(workBtn){
+      const key = workBtn.dataset.collapseWork;
+      const currentlyCollapsed = Boolean(state.collapsedWorks?.[key]);
+      setWorkCollapsed(key, !currentlyCollapsed);
+    }
+
+    if(episodeBtn){
+      const pidx = Number(episodeBtn.dataset.projectIndex);
+      const project = state.projects[pidx];
+      if(project){
+        const currentlyCollapsed = isEpisodeCollapsed(project, pidx);
+        setEpisodeCollapsed(project, pidx, !currentlyCollapsed);
+        selectedProjectIndex = pidx;
+      }
+    }
+
+    selectedIndex = null;
+    selectedCells = new Set();
+    selectionAnchor = null;
+    saveState();
+    renderTable();
+  }
+});
+
+document.getElementById("tbody").addEventListener("click", e => {
+  if(e.target.closest("[data-collapse-work], [data-collapse-episode]")) return;
+  const selectorCell = e.target.closest(".project-cell, .episode-cell");
+  if(!selectorCell) return;
+  selectedProjectIndex = Number(selectorCell.dataset.projectIndex ?? selectedProjectIndex);
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("addWorkBtn").addEventListener("click", () => {
+  const projectName = prompt(t("promptNewWork"), "");
+  if(projectName === null) return;
+  const episodeNo = prompt(t("promptFirstEpisode"), "");
+  if(episodeNo === null) return;
+
+  state.projects.push(makeProject(projectName.trim() || "Untitled", episodeNo.trim() || "-", blankCuts(10), ""));
+  selectedProjectIndex = state.projects.length - 1;
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("addEpisodeBtn").addEventListener("click", () => {
+  const base = currentProject();
+  const episodeNo = prompt(t("promptAddEpisode", base.projectName || "Untitled"), "");
+  if(episodeNo === null) return;
+
+  state.projects.push(makeProject(base.projectName || "Untitled", episodeNo.trim() || "-", blankCuts(10), ""));
+  selectedProjectIndex = state.projects.length - 1;
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("removeWorkBtn").addEventListener("click", () => {
+  if(state.projects.length <= 1){
+    alert(t("alertMinWork"));
+    return;
+  }
+
+  const project = currentProject();
+  const name = normalizeWorkName(project.projectName);
+  const indexes = state.projects
+    .map((p, idx) => ({p, idx}))
+    .filter(item => normalizeWorkName(item.p.projectName) === name)
+    .map(item => item.idx);
+
+  if(confirm(t("confirmRemoveWork", name, indexes.length))){
+    state.projects = state.projects.filter((_, idx) => !indexes.includes(idx));
+    if(!state.projects.length) state = makeEmptyState();
+    selectedProjectIndex = Math.min(selectedProjectIndex, state.projects.length - 1);
+    selectedProjectIndex = Math.max(0, selectedProjectIndex);
+    selectedIndex = null;
+    selectedCells = new Set();
+    selectionAnchor = null;
+    saveState();
+    renderTable();
+  }
+});
+
+document.getElementById("removeEpisodeBtn").addEventListener("click", () => {
+  if(state.projects.length <= 1){
+    alert(t("alertMinEpisode"));
+    return;
+  }
+
+  const project = currentProject();
+  if(confirm(t("confirmRemoveEpisode", projectLabel(project)))){
+    state.projects.splice(selectedProjectIndex, 1);
+    if(!state.projects.length) state = makeEmptyState();
+    selectedProjectIndex = Math.max(0, Math.min(selectedProjectIndex, state.projects.length - 1));
+    selectedIndex = null;
+    selectedCells = new Set();
+    selectionAnchor = null;
+    saveState();
+    renderTable();
+  }
+});
+
+document.getElementById("addCutBtn").addEventListener("click", () => {
+  document.getElementById("modalBg").style.display = "flex";
+  document.getElementById("newCut").focus();
+});
+document.getElementById("cancelModal").addEventListener("click", closeModal);
+document.getElementById("modalBg").addEventListener("click", e => {
+  if(e.target.id === "modalBg") closeModal();
+});
+function closeModal(){
+  document.getElementById("modalBg").style.display = "none";
+}
+document.getElementById("saveNewCut").addEventListener("click", () => {
+  const item = {
+    cut: document.getElementById("newCut").value.trim(),
+    time: document.getElementById("newTime").value.trim(),
+    owner:"",
+    deadline:"",
+    status:"",
+    memo:"",
+    work:{lo:false, retake:false, genga:false}
+  };
+  if(!item.cut && !item.time) return;
+  currentProject().cuts.push(item);
+  ["newCut","newTime"].forEach(id => document.getElementById(id).value = "");
+  saveState();
+  closeModal();
+  renderTable();
+});
+
+document.getElementById("addManyBtn").addEventListener("click", () => {
+  const n = getBulkCutCount();
+  const project = currentProject();
+  for(let i=0; i<n; i++){
+    project.cuts.push(blankCut());
+  }
+  saveState();
+  renderTable();
+});
+
+document.getElementById("removeManyBtn").addEventListener("click", () => {
+  const n = getBulkCutCount();
+  const project = currentProject();
+
+  if(!project.cuts.length){
+    alert(t("alertNoCutRows"));
+    return;
+  }
+
+  const removeCount = Math.min(n, project.cuts.length);
+  const targets = project.cuts.slice(-removeCount);
+  const hasData = targets.some(c => {
+    normalizeCutWork(c);
+    return String(c.cut || "").trim() || String(c.time || "").trim() || c.work.loState || c.work.retake || c.work.gengaState;
+  });
+
+  if(hasData && !confirm(t("confirmRemoveBulk", removeCount))){
+    return;
+  }
+
+  project.cuts.splice(project.cuts.length - removeCount, removeCount);
+  selectedIndex = null;
+  selectedCells = new Set();
+  selectionAnchor = null;
+  saveState();
+  renderTable();
+});
+
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if(confirm(t("confirmReset"))){
+    safeRemoveItem(STORAGE_KEY);
+    safeRemoveItem(OLD_STORAGE_KEY);
+    state = makeEmptyState();
+    selectedProjectIndex = 0;
+    selectedIndex = null;
+    selectedCells = new Set();
+    selectionAnchor = null;
+    saveState();
+    renderTable();
+  }
+});
+
+document.getElementById("exportBtn").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:"application/json"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  const project = currentProject();
+  a.download = `animator_schedule_multi_${project.projectName || "project"}_${project.episodeNo || "ep"}.json`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+document.getElementById("importBtn").addEventListener("click", () => {
+  document.getElementById("fileInput").click();
+});
+
+document.getElementById("languageSelect").addEventListener("change", e => {
+  uiLang = e.target.value;
+  safeSetItem(LANG_STORAGE_KEY, uiLang);
+  applyLanguage();
+  renderTable();
+});
+
+document.getElementById("fileInput").addEventListener("change", async e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const imported = JSON.parse(text);
+    if(!Array.isArray(imported.projects) && !Array.isArray(imported.cuts)) throw new Error("projects/cuts 없음");
+    state = normalizeState(imported);
+    selectedProjectIndex = state.selectedProjectIndex || 0;
+    selectedIndex = null;
+    saveState();
+    renderTable();
+  }catch(err){
+    alert(t("importFail"));
+  }finally{
+    e.target.value = "";
+  }
+});
+
+function removeSelectedCut(){
+  const project = currentProject();
+  if(selectedIndex === null || selectedIndex < 0 || selectedIndex >= project.cuts.length){
+    alert(t("alertSelectCut"));
+    return;
+  }
+
+  const selectedCut = project.cuts[selectedIndex];
+  const label = selectedCut.cut ? `${t("cut")} ${selectedCut.cut}` : t("emptyRowLabel", selectedIndex + 1);
+
+  if(confirm(t("confirmRemoveCut", label))){
+    project.cuts.splice(selectedIndex, 1);
+    selectedIndex = null;
+    saveState();
+    renderTable();
+  }
+}
+
+document.getElementById("removeCutBtn").addEventListener("click", removeSelectedCut);
+
+document.addEventListener("keydown", e => {
+  if(e.key === "Delete" && selectedIndex !== null && document.activeElement.tagName !== "INPUT" && !document.activeElement.isContentEditable){
+    removeSelectedCut();
+  }
+});
+
+window.addEventListener("beforeunload", () => {
+  if(saveTimer) saveState();
+});
+
+applyLanguage();
+renderTable();
+</script>
+</body>
+</html>
