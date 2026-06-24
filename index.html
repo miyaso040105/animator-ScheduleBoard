@@ -1378,10 +1378,10 @@
 <input id="fileInput" type="file" accept="application/json" hidden>
 
 <script>
-const STORAGE_KEY = "animator_multi_project_board_v1";
+const STORAGE_KEY = "animator_schedule_board_public_empty_v1";
 const OLD_STORAGE_KEY = "animator_schedule_board_mvp_v1";
 
-const LANG_STORAGE_KEY = "animator_schedule_ui_language_v1";
+const LANG_STORAGE_KEY = "animator_schedule_ui_language_public_v1";
 const I18N = {
   ko:{
     appTitle:"애니메이터 스케줄 보드",
@@ -2056,6 +2056,16 @@ function getEpisodeTotalTime(project){
   return framesToTime(getEpisodeTotalFrames(project));
 }
 
+function updateEpisodeTotalTimeDisplay(projectIndex){
+  const project = state.projects[projectIndex];
+  if(!project) return;
+
+  const label = `${t("totalTime")}: ${getEpisodeTotalTime(project)}`;
+  document.querySelectorAll(`.episode-total-time[data-project-index="${projectIndex}"]`).forEach(el => {
+    el.textContent = label;
+  });
+}
+
 function getCounts(){
   const project = currentProject();
   project.cuts.forEach(normalizeCutWork);
@@ -2393,7 +2403,7 @@ function renderWorkGroup(group, filter){
     const episodeToggle = item.collapsed ? "▶" : "▼";
     const episodeToggleLabel = item.collapsed ? t("expand") : t("collapse");
     const episodeTotalTime = getEpisodeTotalTime(project);
-    const episodeCellHtml = `<div class="episode-cell-content"><button type="button" class="episode-collapse-toggle" data-collapse-episode="${escapeHtml(episodeCollapseKey(project, projectIndex))}" data-project-index="${projectIndex}" title="${escapeHtml(episodeToggleLabel)}" aria-label="${escapeHtml(episodeToggleLabel)}">${episodeToggle}</button><div class="episode-info"><span>${escapeHtml(project.episodeNo)}</span><span class="episode-total-time">${escapeHtml(t("totalTime"))}: ${escapeHtml(episodeTotalTime)}</span></div></div>`;
+    const episodeCellHtml = `<div class="episode-cell-content"><button type="button" class="episode-collapse-toggle" data-collapse-episode="${escapeHtml(episodeCollapseKey(project, projectIndex))}" data-project-index="${projectIndex}" title="${escapeHtml(episodeToggleLabel)}" aria-label="${escapeHtml(episodeToggleLabel)}">${episodeToggle}</button><div class="episode-info"><span>${escapeHtml(project.episodeNo)}</span><span class="episode-total-time" data-project-index="${projectIndex}">${escapeHtml(t("totalTime"))}: ${escapeHtml(episodeTotalTime)}</span></div></div>`;
 
     if(item.collapsed){
       const showProjectCell = !groupNameInserted;
@@ -2702,6 +2712,10 @@ function handleArrowNavigation(e){
 
   if(isTableEditable){
     updateCellValueFromDom(active);
+    if(active.dataset.field === "time"){
+      const projectIndex = Number(active.dataset.projectIndex ?? selectedProjectIndex);
+      updateEpisodeTotalTimeDisplay(projectIndex);
+    }
     scheduleSave();
   }
 
@@ -2960,6 +2974,12 @@ document.getElementById("tbody").addEventListener("input", e => {
   if(!td) return;
 
   updateCellValueFromDom(td);
+
+  if(td.dataset.field === "time"){
+    const projectIndex = Number(td.dataset.projectIndex ?? selectedProjectIndex);
+    updateEpisodeTotalTimeDisplay(projectIndex);
+  }
+
   scheduleSave();
   refreshCurrentControls();
 });
